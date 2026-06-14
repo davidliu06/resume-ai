@@ -89,7 +89,7 @@ function SignedOutHome() {
             Build your career loadout.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-400">
-            Score resumes, convert LinkedIn profiles, stage portfolio copy, and
+            Score resumes, format PDF exports, stage portfolio copy, and
             prep applications inside one pixel-sharp workspace.
           </p>
           <div className="mt-8 grid max-w-2xl gap-3 sm:grid-cols-3">

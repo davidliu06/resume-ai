@@ -1,21 +1,33 @@
-import { Check, Crown, Lock, Sparkles, Zap } from "lucide-react";
+import { Check, Crown, Lock, Sparkles } from "lucide-react";
 
 import { createCheckoutSession } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import type { Plan } from "@/lib/types";
 
-const features = [
+const premiumFeatures = [
   "Unlimited full resume reviews",
   "All suggestions unlocked",
-  "LinkedIn to resume drafts",
+  "Resume generator with styled PDF exports",
+  "Resume to portfolio builder",
+  "Job application source board",
+];
+
+const freeFeatures = [
+  "Upload resumes for AI assessment",
+  "See the resume score",
+  "Read the first 3 suggestions",
+  "Use basic resume formatting tools",
+];
+
+const upcomingFeatures = [
   "Styled PDF resume exports",
-  "Portfolio conversion workspace",
-  "Job application tracker area",
+  "Portfolio site exports",
+  "Application tracker",
 ];
 
 export function PremiumPanel({ plan }: { plan: Plan }) {
   return (
-    <section className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+    <section className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
       <div className="pixel-panel p-5">
         <div className="flex items-center gap-3">
           <div className="grid size-12 place-items-center border-2 border-slate-950 bg-amber-300 text-slate-950 shadow-[4px_4px_0_#020617]">
@@ -32,7 +44,7 @@ export function PremiumPanel({ plan }: { plan: Plan }) {
         </div>
 
         <div className="mt-6 grid gap-3">
-          {features.map((feature) => (
+          {upcomingFeatures.map((feature) => (
             <div
               className="flex items-center gap-3 border-2 border-slate-950 bg-slate-900 px-3 py-2 text-sm text-slate-200 shadow-[3px_3px_0_#020617]"
               key={feature}
@@ -44,7 +56,7 @@ export function PremiumPanel({ plan }: { plan: Plan }) {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4">
         <div className="pixel-panel flex flex-col p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
@@ -58,10 +70,14 @@ export function PremiumPanel({ plan }: { plan: Plan }) {
           <div className="mt-5 font-mono text-4xl font-black text-slate-50">
             $0
           </div>
-          <p className="mt-3 text-sm leading-6 text-slate-400">
-            Upload resumes, see the score, and read the first 3 suggestions.
-            Full review cards remain locked.
-          </p>
+          <ul className="mt-5 grid gap-2 text-sm text-slate-300">
+            {freeFeatures.map((feature) => (
+              <li className="flex items-center gap-2" key={feature}>
+                <Check className="size-4 text-slate-500" />
+                {feature}
+              </li>
+            ))}
+          </ul>
           <div className="mt-auto pt-5">
             <div className="border-2 border-slate-950 bg-slate-800 px-3 py-2 text-center font-mono text-xs uppercase text-slate-300 shadow-[3px_3px_0_#020617]">
               Current starter tier
@@ -74,8 +90,8 @@ export function PremiumPanel({ plan }: { plan: Plan }) {
             Popular
           </div>
           <div className="flex items-center gap-3">
-            <div className="grid size-10 place-items-center border-2 border-slate-950 bg-emerald-300 text-slate-950 shadow-[3px_3px_0_#020617]">
-              <Zap className="size-5" />
+            <div className="grid size-10 place-items-center border-2 border-slate-950 bg-amber-300 text-slate-950 shadow-[3px_3px_0_#020617]">
+              <Crown className="size-5" />
             </div>
             <div>
               <h3 className="pr-20 font-mono text-base font-black uppercase text-slate-50">
@@ -92,11 +108,14 @@ export function PremiumPanel({ plan }: { plan: Plan }) {
             </span>
             <span className="pb-1 text-sm text-slate-400">via Stripe Checkout</span>
           </div>
-          <p className="mt-3 text-sm leading-6 text-slate-400">
-            Unlock every suggestion, generate more complete career assets, and
-            export styled resume PDFs while keeping the conversion tools available
-            as they come online.
-          </p>
+          <ul className="mt-5 grid gap-2 text-sm text-slate-300">
+            {premiumFeatures.map((feature) => (
+              <li className="flex items-center gap-2" key={feature}>
+                <Check className="size-4 text-emerald-300" />
+                {feature}
+              </li>
+            ))}
+          </ul>
 
           <form action={createCheckoutSession} className="mt-auto pt-5">
             <Button

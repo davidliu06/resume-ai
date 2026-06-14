@@ -7,8 +7,9 @@ import Stripe from "stripe";
 
 import { analyzeResumeText, extractPdfText } from "@/lib/analysis";
 import { requireEnv } from "@/lib/env";
+import { cleanResumeText } from "@/lib/resume-text";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { ActionState, LinkedInResumeState, Profile } from "@/lib/types";
+import type { ActionState, Profile, ResumeExportState } from "@/lib/types";
 
 const MAX_PDF_BYTES = 8 * 1024 * 1024;
 
@@ -234,83 +235,63 @@ export async function uploadResume(
   }
 }
 
-export async function convertLinkedInToResume(
-  _prevState: LinkedInResumeState,
+export async function prepareResumeExport(
+  _prevState: ResumeExportState,
   formData: FormData
-): Promise<LinkedInResumeState> {
+): Promise<ResumeExportState> {
   try {
     await getAuthedUser();
 
-    const profileText = String(formData.get("profileText") ?? "").trim();
-    const targetRole = String(formData.get("targetRole") ?? "").trim();
-    const tone = String(formData.get("tone") ?? "technical").trim();
+    const resumeText = String(formData.get("resumeText") ?? "").trim();
+    const file = formData.get("resumeFile");
+    let rawText = resumeText;
 
-    if (profileText.length < 400) {
-      return {
-        ok: false,
-        message:
-          "Paste more LinkedIn content first: headline, about, experience, projects, skills, and education.",
-        resumeMarkdown: "",
-      };
+    if (file instanceof File && file.size > 0) {
+      if (file.size > MAX_PDF_BYTES) {
+        return {
+          ok: false,
+          message: "Keep the PDF under 8 MB.",
+          resumeText: "",
+        };
+      }
+
+      const isPdf =
+        file.type === "application/pdf" ||
+        file.name.toLowerCase().endsWith(".pdf");
+
+      if (!isPdf) {
+        return {
+          ok: false,
+          message: "Upload a PDF resume or paste resume text.",
+          resumeText: "",
+        };
+      }
+
+      rawText = await extractPdfText(Buffer.from(await file.arrayBuffer()));
     }
 
-    const openai = new (await import("openai")).default({
-      apiKey: requireEnv("OPENAI_API_KEY"),
-    });
+    const cleaned = cleanResumeText(rawText);
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0.25,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You convert LinkedIn profile text into a concise ATS-friendly engineering resume. Do not invent employers, degrees, dates, metrics, tools, or awards. If a metric is missing, write a stronger bullet without fake numbers. Output Markdown only.",
-        },
-        {
-          role: "user",
-          content: `Target role: ${targetRole || "engineering internship"}
-Tone: ${tone}
-
-Create a one-page resume draft with these sections:
-- Name and contact line if present
-- Professional Summary
-- Education
-- Skills grouped by category
-- Experience
-- Projects
-- Leadership or Awards if present
-
-Use strong action verbs, technical depth, and ATS keywords. Keep bullets crisp.
-
-LinkedIn/profile text:
-${profileText.slice(0, 18000)}`,
-        },
-      ],
-    });
-
-    const resumeMarkdown = completion.choices[0]?.message.content?.trim();
-
-    if (!resumeMarkdown) {
+    if (cleaned.length < 80) {
       return {
         ok: false,
-        message: "The converter did not return a resume draft. Try again.",
-        resumeMarkdown: "",
+        message: "Add more resume text or upload a selectable-text PDF.",
+        resumeText: "",
       };
     }
 
     return {
       ok: true,
-      message: "Resume draft generated from LinkedIn/profile content.",
-      resumeMarkdown,
+      message: "Resume text loaded. Choose a style and download the PDF.",
+      resumeText: cleaned,
     };
   } catch (error) {
-    console.error("LinkedIn conversion failed", error);
+    console.error("Resume export preparation failed", error);
 
     return {
       ok: false,
       message: friendlyUploadError(error),
-      resumeMarkdown: "",
+      resumeText: "",
     };
   }
 }

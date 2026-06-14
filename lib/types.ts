@@ -37,6 +37,6 @@ export type ActionState = {
   message: string;
 };
 
-export type LinkedInResumeState = ActionState & {
-  resumeMarkdown: string;
+export type ResumeExportState = ActionState & {
+  resumeText: string;
 };

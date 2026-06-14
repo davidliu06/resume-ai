@@ -4,20 +4,19 @@ import { useState } from "react";
 import {
   BriefcaseBusiness,
   CreditCard,
-  ExternalLink,
-  FileCode2,
   FileSearch,
   FileText,
   Globe2,
-  Link2,
   LogOut,
   Sparkles,
 } from "lucide-react";
 
 import { signOut } from "@/app/actions";
-import { LinkedInResumeConverter } from "@/components/linkedin-resume-converter";
+import { JobApplications } from "@/components/job-applications";
 import { PixelLogo } from "@/components/pixel-logo";
+import { PortfolioBuilder } from "@/components/portfolio-builder";
 import { PremiumPanel } from "@/components/premium-panel";
+import { ResumeGenerator } from "@/components/resume-generator";
 import { ResumeUploadForm } from "@/components/resume-upload-form";
 import { ReviewFeed } from "@/components/review-feed";
 import { Badge } from "@/components/ui/badge";
@@ -25,7 +24,12 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Plan, Resume, ResumeAnalysis } from "@/lib/types";
 
-type WorkspaceMode = "assessment" | "linkedin" | "portfolio" | "jobs" | "pricing";
+type WorkspaceMode =
+  | "assessment"
+  | "generator"
+  | "portfolio"
+  | "jobs"
+  | "pricing";
 
 const modes: Array<{
   id: WorkspaceMode;
@@ -40,15 +44,15 @@ const modes: Array<{
     icon: FileSearch,
   },
   {
-    id: "linkedin",
-    label: "LinkedIn to resume",
-    description: "Convert profile text into a resume",
-    icon: Link2,
+    id: "generator",
+    label: "Resume generator",
+    description: "Format text or PDF into styles",
+    icon: FileText,
   },
   {
     id: "portfolio",
-    label: "Resume/LinkedIn to portfolio",
-    description: "Generate a portfolio structure",
+    label: "Resume to portfolio",
+    description: "Create website copy from a resume",
     icon: Globe2,
   },
   {
@@ -200,71 +204,14 @@ export function AppWorkspace({
           </section>
         ) : null}
 
-        {mode === "linkedin" ? <LinkedInResumeConverter /> : null}
+        {mode === "generator" ? <ResumeGenerator /> : null}
 
-        {mode === "portfolio" ? (
-          <PlaceholderPanel
-            icon={FileCode2}
-            title="Portfolio converter"
-            body="This workspace is staged for turning resume and LinkedIn material into a personal portfolio outline, case-study cards, and project copy."
-          />
-        ) : null}
+        {mode === "portfolio" ? <PortfolioBuilder /> : null}
 
-        {mode === "jobs" ? (
-          <PlaceholderPanel
-            icon={BriefcaseBusiness}
-            title="Job application area"
-            body="This area is staged for saved roles, fit notes, resume versions, and application status tracking."
-          />
-        ) : null}
+        {mode === "jobs" ? <JobApplications /> : null}
 
         {mode === "pricing" ? <PremiumPanel plan={profile.plan} /> : null}
       </div>
     </main>
-  );
-}
-
-function PlaceholderPanel({
-  icon: Icon,
-  title,
-  body,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  body: string;
-}) {
-  return (
-    <section className="pixel-panel min-h-[420px] p-6">
-      <div className="flex items-center gap-3">
-        <div className="grid size-12 place-items-center border-2 border-slate-950 bg-sky-300 text-slate-950 shadow-[4px_4px_0_#020617]">
-          <Icon className="size-6" />
-        </div>
-        <div>
-          <h2 className="font-mono text-lg font-black uppercase text-slate-50">
-            {title}
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-            {body}
-          </p>
-        </div>
-      </div>
-      <div className="mt-8 grid gap-3 md:grid-cols-3">
-        {["Input", "Generate", "Export"].map((step, index) => (
-          <div
-            className="border-2 border-slate-950 bg-slate-900 p-4 shadow-[4px_4px_0_#020617]"
-            key={step}
-          >
-            <div className="font-mono text-xs font-black uppercase text-fuchsia-200">
-              Stage {index + 1}
-            </div>
-            <div className="mt-2 text-sm text-slate-200">{step}</div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-6 inline-flex items-center gap-2 border-2 border-slate-950 bg-slate-800 px-3 py-2 font-mono text-xs uppercase text-slate-300 shadow-[3px_3px_0_#020617]">
-        <ExternalLink className="size-3.5" />
-        Coming next
-      </div>
-    </section>
   );
 }
