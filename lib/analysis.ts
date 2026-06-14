@@ -1,3 +1,6 @@
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+
 import OpenAI from "openai";
 import { z } from "zod";
 
@@ -18,6 +21,8 @@ const analysisSchema = z.object({
   atsKeywords: z.array(z.string()).default([]),
   suggestions: z.array(suggestionSchema).default([]),
 });
+
+const require = createRequire(import.meta.url);
 
 export async function extractPdfText(buffer: Buffer) {
   await installPdfDomGlobals();
@@ -62,6 +67,7 @@ async function installPdfDomGlobals() {
 
 async function extractWithPdfParse(buffer: Buffer) {
   const { PDFParse } = await import("pdf-parse");
+  PDFParse.setWorker(getPdfWorkerUrl());
   const parser = new PDFParse({ data: buffer });
 
   try {
@@ -79,6 +85,7 @@ async function extractWithPdfParse(buffer: Buffer) {
 
 async function extractWithPdfJs(buffer: Buffer) {
   const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  pdfjs.GlobalWorkerOptions.workerSrc = getPdfWorkerUrl();
   const documentInit = {
     data: new Uint8Array(buffer),
     disableWorker: true,
@@ -107,6 +114,12 @@ async function extractWithPdfJs(buffer: Buffer) {
   }
 
   return pages.join("\n\n");
+}
+
+function getPdfWorkerUrl() {
+  return pathToFileURL(
+    require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs")
+  ).href;
 }
 
 function normalizeExtractedText(text: string) {

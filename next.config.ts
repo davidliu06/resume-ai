@@ -6,7 +6,10 @@ const nextConfig: NextConfig = {
       bodySizeLimit: "10mb",
     },
   },
-  serverExternalPackages: ["@napi-rs/canvas", "pdf-parse", "pdfjs-dist"],
+  outputFileTracingIncludes: {
+    "/*": ["./node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs"],
+  },
+  serverExternalPackages: ["@napi-rs/canvas", "pdf-parse"],
 };
 
 export default nextConfig;
