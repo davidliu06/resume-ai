@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   BriefcaseBusiness,
+  CreditCard,
   ExternalLink,
   FileCode2,
   FileSearch,
@@ -24,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Plan, Resume, ResumeAnalysis } from "@/lib/types";
 
-type WorkspaceMode = "assessment" | "linkedin" | "portfolio" | "jobs";
+type WorkspaceMode = "assessment" | "linkedin" | "portfolio" | "jobs" | "pricing";
 
 const modes: Array<{
   id: WorkspaceMode;
@@ -55,6 +56,12 @@ const modes: Array<{
     label: "Job applications",
     description: "Track roles and materials",
     icon: BriefcaseBusiness,
+  },
+  {
+    id: "pricing",
+    label: "Pricing",
+    description: "Free vs Premium Pass",
+    icon: CreditCard,
   },
 ];
 
@@ -93,7 +100,7 @@ export function AppWorkspace({
                 }
                 variant="outline"
               >
-                {profile.plan}
+                {profile.plan === "pro" ? "Premium Pass" : "free"}
               </Badge>
               <span className="max-w-[220px] truncate font-mono text-xs text-slate-400">
                 {profile.email}
@@ -112,7 +119,7 @@ export function AppWorkspace({
             </div>
           </div>
 
-          <nav className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          <nav className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
             {modes.map((item) => {
               const Icon = item.icon;
               const active = mode === item.id;
@@ -211,7 +218,7 @@ export function AppWorkspace({
           />
         ) : null}
 
-        <PremiumPanel plan={profile.plan} />
+        {mode === "pricing" ? <PremiumPanel plan={profile.plan} /> : null}
       </div>
     </main>
   );

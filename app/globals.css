@@ -173,4 +173,152 @@
     @apply border-2 border-slate-950 bg-slate-950/80 font-mono text-slate-100 shadow-[3px_3px_0_#020617] placeholder:text-slate-600 focus-visible:ring-0;
     border-radius: 0;
   }
+
+  .resume-template {
+    @apply mx-auto min-h-[11in] w-full max-w-[8.5in] bg-white px-10 py-9 text-slate-950 shadow-[8px_8px_0_#020617];
+    color: #0f172a;
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.42;
+  }
+
+  .resume-template h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .resume-template h2 {
+    margin: 18px 0 7px;
+    border-bottom: 2px solid currentColor;
+    padding-bottom: 3px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: uppercase;
+  }
+
+  .resume-template p {
+    margin: 0 0 6px;
+    font-size: 12px;
+  }
+
+  .resume-template .resume-bullet {
+    position: relative;
+    margin-left: 16px;
+  }
+
+  .resume-template .resume-bullet::before {
+    content: "";
+    position: absolute;
+    left: -12px;
+    top: 0.58em;
+    height: 4px;
+    width: 4px;
+    background: currentColor;
+  }
+
+  .resume-empty {
+    @apply flex min-h-[9in] flex-col items-center justify-center border-2 border-dashed border-slate-300 px-8 text-center text-slate-500;
+  }
+
+  .resume-empty h2 {
+    border: 0;
+    color: #0f172a;
+    font-size: 16px;
+  }
+
+  .resume-template-classic {
+    text-align: center;
+  }
+
+  .resume-template-classic h2,
+  .resume-template-classic p {
+    text-align: left;
+  }
+
+  .resume-template-easy {
+    padding: 0.7in;
+    font-family: Georgia, "Times New Roman", serif;
+  }
+
+  .resume-template-easy h1 {
+    color: #1e3a5f;
+    text-transform: none;
+  }
+
+  .resume-template-traditional {
+    border-top: 12px solid #111827;
+    font-family: "Times New Roman", Times, serif;
+  }
+
+  .resume-template-general h1 {
+    border-bottom: 4px solid #22c55e;
+    padding-bottom: 10px;
+  }
+
+  .resume-template-business {
+    border-left: 0.35in solid #1e293b;
+    padding-left: 0.45in;
+  }
+
+  .resume-template-business h1,
+  .resume-template-business h2 {
+    color: #1e293b;
+  }
+
+  .resume-template-editable {
+    font-family: Calibri, Arial, sans-serif;
+  }
+
+  .resume-template-editable h2 {
+    border: 0;
+    background: #e2e8f0;
+    padding: 5px 8px;
+  }
+
+  .resume-template-combination h1 {
+    color: #064e3b;
+  }
+
+  .resume-template-combination h2 {
+    border-bottom-color: #10b981;
+    color: #064e3b;
+  }
+
+  .resume-template-two-page {
+    min-height: 14in;
+    padding: 0.85in 0.75in;
+  }
+}
+
+@media print {
+  @page {
+    margin: 0.45in;
+    size: letter;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .resume-print-area,
+  .resume-print-area * {
+    visibility: visible !important;
+  }
+
+  .resume-print-area {
+    position: absolute;
+    inset: 0;
+    width: auto;
+    max-width: none;
+    min-height: auto;
+    padding: 0;
+    box-shadow: none;
+  }
 }

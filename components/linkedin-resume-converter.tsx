@@ -1,12 +1,19 @@
 "use client";
 
-import { useActionState } from "react";
-import { FileText, Loader2, WandSparkles } from "lucide-react";
+import { useActionState, useMemo, useState } from "react";
+import {
+  Download,
+  FileText,
+  Loader2,
+  Lock,
+  WandSparkles,
+} from "lucide-react";
 
 import { convertLinkedInToResume } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import type { LinkedInResumeState } from "@/lib/types";
 
 const initialState: LinkedInResumeState = {
@@ -15,10 +22,68 @@ const initialState: LinkedInResumeState = {
   resumeMarkdown: "",
 };
 
+const resumeStyles = [
+  {
+    id: "classic",
+    label: "Classic Resume",
+    source: "Classic-Resume-12851.docx",
+    description: "Centered name, traditional sections, tight ATS layout.",
+  },
+  {
+    id: "easy",
+    label: "Easy Resume",
+    source: "Easy-Resume-13122.docx",
+    description: "Simple spacing and readable hierarchy for quick edits.",
+  },
+  {
+    id: "traditional",
+    label: "Traditional Simple",
+    source: "Traditional-Simple-Resume-17613.docx",
+    description: "Conservative, single-column, recruiter-friendly.",
+  },
+  {
+    id: "general",
+    label: "General Resume",
+    source: "General-Resume-23100.docx",
+    description: "Balanced section density for internships and early career.",
+  },
+  {
+    id: "business",
+    label: "Business Resume",
+    source: "Business-Resume-12524.docx",
+    description: "Subtle sidebar feel with polished professional contrast.",
+  },
+  {
+    id: "editable",
+    label: "Editable Professional",
+    source: "Editable-Professional-Resume-18665.docx",
+    description: "Modern headings with clean professional spacing.",
+  },
+  {
+    id: "combination",
+    label: "Combination Resume",
+    source: "Combination-Resume-20228.docx",
+    description: "Skills-forward layout with experience support.",
+  },
+  {
+    id: "two-page",
+    label: "Two Page Resume",
+    source: "Two-Page-Resume-19210.docx",
+    description: "Roomier format for larger project and experience histories.",
+  },
+] as const;
+
+type ResumeStyleId = (typeof resumeStyles)[number]["id"];
+
 export function LinkedInResumeConverter() {
   const [state, action, pending] = useActionState(
     convertLinkedInToResume,
     initialState
+  );
+  const [selectedStyle, setSelectedStyle] = useState<ResumeStyleId>("classic");
+  const activeStyle = useMemo(
+    () => resumeStyles.find((style) => style.id === selectedStyle)!,
+    [selectedStyle]
   );
 
   return (
@@ -31,9 +96,21 @@ export function LinkedInResumeConverter() {
               LinkedIn to Resume
             </h2>
             <p className="mt-1 text-sm text-slate-400">
-              Paste exported profile text and turn it into an ATS-ready draft.
+              Paste profile text, choose a style, then export a PDF resume.
             </p>
           </div>
+        </div>
+
+        <div className="border-2 border-slate-950 bg-slate-950/70 p-3 shadow-[3px_3px_0_#020617]">
+          <div className="flex items-center gap-2 font-mono text-xs font-black uppercase text-amber-200">
+            <Lock className="size-4" />
+            Direct LinkedIn import
+          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-400">
+            LinkedIn sign-in can verify identity, but full profile and work
+            history access requires LinkedIn API approval. Until that approval
+            is available, paste your visible profile text here.
+          </p>
         </div>
 
         <label className="grid gap-2 text-sm text-slate-300">
@@ -46,7 +123,7 @@ export function LinkedInResumeConverter() {
         </label>
 
         <label className="grid gap-2 text-sm text-slate-300">
-          Draft style
+          Draft strategy
           <select
             className="pixel-input h-11 rounded-none px-3 text-sm text-slate-100 outline-none"
             name="tone"
@@ -57,6 +134,39 @@ export function LinkedInResumeConverter() {
             <option value="ats">ATS keyword dense</option>
           </select>
         </label>
+
+        <div className="grid gap-2">
+          <div className="text-sm text-slate-300">Resume style</div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {resumeStyles.map((style) => (
+              <button
+                className={cn(
+                  "border-2 border-slate-950 bg-slate-900 p-3 text-left shadow-[3px_3px_0_#020617] transition hover:-translate-y-0.5",
+                  selectedStyle === style.id &&
+                    "bg-emerald-300 text-slate-950"
+                )}
+                key={style.id}
+                onClick={() => setSelectedStyle(style.id)}
+                type="button"
+              >
+                <span className="block font-mono text-xs font-black uppercase">
+                  {style.label}
+                </span>
+                <span
+                  className={cn(
+                    "mt-1 block text-[11px] leading-4 text-slate-500",
+                    selectedStyle === style.id && "text-slate-950/70"
+                  )}
+                >
+                  {style.source}
+                </span>
+              </button>
+            ))}
+          </div>
+          <p className="text-xs leading-5 text-slate-500">
+            {activeStyle.description}
+          </p>
+        </div>
 
         <label className="grid gap-2 text-sm text-slate-300">
           LinkedIn/profile text
@@ -91,23 +201,77 @@ export function LinkedInResumeConverter() {
         </Button>
       </form>
 
-      <section className="pixel-panel min-h-[620px] overflow-hidden">
-        <div className="flex items-center justify-between border-b-2 border-slate-950 bg-slate-800 px-4 py-3">
-          <div className="flex items-center gap-2 font-mono text-sm font-black uppercase text-slate-50">
-            <FileText className="size-4 text-emerald-200" />
-            Resume draft
+      <section className="pixel-panel min-h-[680px] overflow-hidden">
+        <div className="flex flex-col gap-3 border-b-2 border-slate-950 bg-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="flex items-center gap-2 font-mono text-sm font-black uppercase text-slate-50">
+              <FileText className="size-4 text-emerald-200" />
+              Resume draft
+            </div>
+            <p className="mt-1 text-xs text-slate-400">{activeStyle.label}</p>
           </div>
-          <div className="flex gap-1">
-            <span className="size-3 border border-slate-950 bg-red-300" />
-            <span className="size-3 border border-slate-950 bg-amber-300" />
-            <span className="size-3 border border-slate-950 bg-emerald-300" />
+          <Button
+            className="pixel-button h-9"
+            disabled={!state.resumeMarkdown}
+            onClick={() => window.print()}
+            type="button"
+          >
+            <Download className="size-4" />
+            Download PDF
+          </Button>
+        </div>
+
+        <div className="bg-slate-950/80 p-4">
+          <div
+            className={cn(
+              "resume-print-area resume-template",
+              `resume-template-${selectedStyle}`
+            )}
+          >
+            {state.resumeMarkdown ? (
+              <MarkdownResume markdown={state.resumeMarkdown} />
+            ) : (
+              <div className="resume-empty">
+                <h2>Your generated resume draft will appear here.</h2>
+                <p>
+                  Choose a template, paste visible LinkedIn/profile text, and
+                  generate a draft. The download button opens your browser PDF
+                  export dialog.
+                </p>
+              </div>
+            )}
           </div>
         </div>
-        <pre className="min-h-[560px] overflow-auto whitespace-pre-wrap bg-slate-950/80 p-5 font-mono text-xs leading-6 text-slate-200">
-          {state.resumeMarkdown ||
-            "Your generated resume draft will appear here.\n\nTip: copy visible LinkedIn text from your profile, not just the profile URL. LinkedIn pages usually require auth and cannot be reliably scraped from a server action."}
-        </pre>
       </section>
+    </div>
+  );
+}
+
+function MarkdownResume({ markdown }: { markdown: string }) {
+  const lines = markdown
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return (
+    <div>
+      {lines.map((line, index) => {
+        const cleaned = line.replace(/^#{1,6}\s*/, "");
+
+        if (index === 0 || line.startsWith("# ")) {
+          return <h1 key={`${line}-${index}`}>{cleaned}</h1>;
+        }
+
+        if (line.startsWith("##") || /^[A-Z][A-Z\s/&+-]{3,}$/.test(line)) {
+          return <h2 key={`${line}-${index}`}>{cleaned}</h2>;
+        }
+
+        if (line.startsWith("- ") || line.startsWith("* ")) {
+          return <p className="resume-bullet" key={`${line}-${index}`}>{line.slice(2)}</p>;
+        }
+
+        return <p key={`${line}-${index}`}>{cleaned}</p>;
+      })}
     </div>
   );
 }

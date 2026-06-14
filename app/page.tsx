@@ -105,7 +105,7 @@ function SignedOutHome() {
             />
             <FeatureTile
               icon={Sparkles}
-              label="Pro unlocks"
+              label="Premium Pass"
               text="Premium unlocks the full feed."
             />
           </div>

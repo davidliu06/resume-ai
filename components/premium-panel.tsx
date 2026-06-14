@@ -8,6 +8,7 @@ const features = [
   "Unlimited full resume reviews",
   "All suggestions unlocked",
   "LinkedIn to resume drafts",
+  "Styled PDF resume exports",
   "Portfolio conversion workspace",
   "Job application tracker area",
 ];
@@ -77,29 +78,36 @@ export function PremiumPanel({ plan }: { plan: Plan }) {
               <Zap className="size-5" />
             </div>
             <div>
-              <h3 className="font-mono text-base font-black uppercase text-slate-50">
-                Pro
+              <h3 className="pr-20 font-mono text-base font-black uppercase text-slate-50">
+                Premium Pass
               </h3>
               <p className="mt-1 text-sm text-slate-400">
-                Built for active applications.
+                The paid tier for active applications.
               </p>
             </div>
           </div>
           <div className="mt-5 flex items-end gap-2">
             <span className="font-mono text-4xl font-black text-emerald-200">
-              Pro
+              Pass
             </span>
             <span className="pb-1 text-sm text-slate-400">via Stripe Checkout</span>
           </div>
           <p className="mt-3 text-sm leading-6 text-slate-400">
             Unlock every suggestion, generate more complete career assets, and
-            keep the conversion tools available as they come online.
+            export styled resume PDFs while keeping the conversion tools available
+            as they come online.
           </p>
 
           <form action={createCheckoutSession} className="mt-auto pt-5">
-            <Button className="pixel-button h-11 w-full" type="submit">
+            <Button
+              className="pixel-button h-11 w-full disabled:opacity-75"
+              disabled={plan === "pro"}
+              type="submit"
+            >
               <Sparkles className="size-4" />
-              {plan === "pro" ? "Manage Pro Access" : "Upgrade to Pro"}
+              {plan === "pro"
+                ? "Premium Pass Active"
+                : "Upgrade to Premium Pass"}
             </Button>
           </form>
         </div>
