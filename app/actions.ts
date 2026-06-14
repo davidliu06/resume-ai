@@ -5,11 +5,25 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Stripe from "stripe";
 
-import { analyzeResumeText, extractPdfText } from "@/lib/analysis";
+import {
+  analyzeResumeText,
+  extractPdfText,
+  extractPdfTextWithLinks,
+} from "@/lib/analysis";
 import { requireEnv } from "@/lib/env";
-import { cleanResumeText } from "@/lib/resume-text";
+import {
+  cleanResumeText,
+  extractLinksFromText,
+  mergeResumeLinks,
+} from "@/lib/resume-text";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { ActionState, Profile, ResumeExportState } from "@/lib/types";
+import type {
+  ActionState,
+  PortfolioBlock,
+  PortfolioOptimizeState,
+  Profile,
+  ResumeExportState,
+} from "@/lib/types";
 
 const MAX_PDF_BYTES = 8 * 1024 * 1024;
 
@@ -245,6 +259,7 @@ export async function prepareResumeExport(
     const resumeText = String(formData.get("resumeText") ?? "").trim();
     const file = formData.get("resumeFile");
     let rawText = resumeText;
+    let pdfLinks: ResumeExportState["links"] = [];
 
     if (file instanceof File && file.size > 0) {
       if (file.size > MAX_PDF_BYTES) {
@@ -252,6 +267,7 @@ export async function prepareResumeExport(
           ok: false,
           message: "Keep the PDF under 8 MB.",
           resumeText: "",
+          links: [],
         };
       }
 
@@ -264,19 +280,26 @@ export async function prepareResumeExport(
           ok: false,
           message: "Upload a PDF resume or paste resume text.",
           resumeText: "",
+          links: [],
         };
       }
 
-      rawText = await extractPdfText(Buffer.from(await file.arrayBuffer()));
+      const extracted = await extractPdfTextWithLinks(
+        Buffer.from(await file.arrayBuffer())
+      );
+      rawText = extracted.text;
+      pdfLinks = extracted.links;
     }
 
     const cleaned = cleanResumeText(rawText);
+    const links = mergeResumeLinks(extractLinksFromText(cleaned), pdfLinks);
 
     if (cleaned.length < 80) {
       return {
         ok: false,
         message: "Add more resume text or upload a selectable-text PDF.",
         resumeText: "",
+        links: [],
       };
     }
 
@@ -284,6 +307,7 @@ export async function prepareResumeExport(
       ok: true,
       message: "Resume text loaded. Choose a style and download the PDF.",
       resumeText: cleaned,
+      links,
     };
   } catch (error) {
     console.error("Resume export preparation failed", error);
@@ -292,8 +316,117 @@ export async function prepareResumeExport(
       ok: false,
       message: friendlyUploadError(error),
       resumeText: "",
+      links: [],
     };
   }
+}
+
+export async function optimizePortfolioFromResume(
+  _prevState: PortfolioOptimizeState,
+  formData: FormData
+): Promise<PortfolioOptimizeState> {
+  try {
+    await getAuthedUser();
+
+    const resumeText = cleanResumeText(
+      String(formData.get("resumeText") ?? "").trim()
+    );
+
+    if (resumeText.length < 120) {
+      return {
+        ok: false,
+        message: "Paste more resume text before optimizing a portfolio.",
+        blocks: [],
+      };
+    }
+
+    const openai = new (await import("openai")).default({
+      apiKey: requireEnv("OPENAI_API_KEY"),
+    });
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      temperature: 0.35,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a portfolio creative director for early-career engineering candidates. Decide what resume material belongs on a concise personal portfolio site. Keep truthful claims only. Output JSON only.",
+        },
+        {
+          role: "user",
+          content: `Create editable portfolio blocks from this resume. Keep the strongest projects, technical skills, education, and contact links. Drop filler, repetitive bullets, and resume-only details. Return JSON:
+{
+  "blocks": [
+    {"type":"text","text":"site copy","x":40,"y":40,"width":420,"height":90},
+    {"type":"frame","shape":"circle","x":760,"y":48,"width":128,"height":128}
+  ]
+}
+
+Resume:
+${resumeText.slice(0, 18000)}`,
+        },
+      ],
+    });
+
+    const content = completion.choices[0]?.message.content;
+    const parsed = content ? JSON.parse(content) : null;
+    const blocks = normalizePortfolioBlocks(parsed?.blocks);
+
+    return {
+      ok: true,
+      message: "Portfolio optimized. Edit the canvas before exporting.",
+      blocks,
+    };
+  } catch (error) {
+    console.error("Portfolio optimization failed", error);
+
+    return {
+      ok: false,
+      message: friendlyUploadError(error),
+      blocks: [],
+    };
+  }
+}
+
+function normalizePortfolioBlocks(input: unknown): PortfolioBlock[] {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input.slice(0, 14).map((block) => {
+    const item = block as Partial<PortfolioBlock>;
+    const type =
+      item.type === "frame" || item.type === "image" || item.type === "text"
+        ? item.type
+        : "text";
+
+    return {
+      id: crypto.randomUUID(),
+      type,
+      text:
+        type === "text"
+          ? String(item.text ?? "Edit this portfolio text")
+          : undefined,
+      src: type === "image" ? item.src : undefined,
+      shape: item.shape === "circle" ? "circle" : "rect",
+      x: clampNumber(item.x, 20, 860),
+      y: clampNumber(item.y, 20, 920),
+      width: clampNumber(item.width, type === "text" ? 220 : 120, 520),
+      height: clampNumber(item.height, type === "text" ? 70 : 120, 320),
+    };
+  });
+}
+
+function clampNumber(value: unknown, fallback: number, max: number) {
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return fallback;
+  }
+
+  return Math.min(Math.max(number, 0), max);
 }
 
 export async function createCheckoutSession() {

@@ -6,8 +6,10 @@ import {
   getResumeLines,
   isBulletLine,
   isResumeHeading,
+  lineToDisplayText,
   stripBullet,
 } from "@/lib/resume-text";
+import type { ResumeLink } from "@/lib/types";
 
 export const resumeStyles = [
   {
@@ -141,9 +143,11 @@ const templates: Record<ResumeStyleId, Template> = {
 };
 
 export function downloadResumePdf({
+  links = [],
   text,
   styleId,
 }: {
+  links?: ResumeLink[];
   text: string;
   styleId: ResumeStyleId;
 }) {
@@ -168,23 +172,32 @@ export function downloadResumePdf({
   drawPageChrome(doc, template, pageWidth);
 
   lines.forEach((line, index) => {
-    const heading = index > 0 && isResumeHeading(line);
+    const displayLine = lineToDisplayText(line);
+    const heading = index > 0 && isResumeHeading(displayLine);
     const firstLine = index === 0;
-    const bullet = isBulletLine(line);
+    const bullet = isBulletLine(displayLine);
+    const lineLink = getLineLink(line, links);
 
     if (firstLine) {
       doc.setFont(template.bodyFont, "bold");
       doc.setFontSize(18);
       doc.setTextColor(...template.accent);
-      const nameLines = doc.splitTextToSize(line, usableWidth);
+      const nameLines = doc.splitTextToSize(displayLine, usableWidth);
       ensureSpace(nameLines.length * 20 + 8);
       nameLines.forEach((nameLine: string) => {
         const x = template.centeredHeader
           ? pageWidth / 2
           : template.marginLeft;
-        doc.text(nameLine, x, y, {
-          align: template.centeredHeader ? "center" : "left",
-        });
+        if (lineLink) {
+          doc.textWithLink(nameLine, x, y, {
+            align: template.centeredHeader ? "center" : "left",
+            url: lineLink.url,
+          });
+        } else {
+          doc.text(nameLine, x, y, {
+            align: template.centeredHeader ? "center" : "left",
+          });
+        }
         y += 20;
       });
       y += 4;
@@ -210,9 +223,9 @@ export function downloadResumePdf({
       if (template.headingBar) {
         doc.setFillColor(...template.accent);
         doc.rect(template.marginLeft, y - 12, usableWidth, 18, "F");
-        doc.text(line.toUpperCase(), template.marginLeft + 8, y);
+        doc.text(displayLine.toUpperCase(), template.marginLeft + 8, y);
       } else {
-        doc.text(line.toUpperCase(), template.marginLeft, y);
+        doc.text(displayLine.toUpperCase(), template.marginLeft, y);
         doc.setDrawColor(...template.accent);
         doc.setLineWidth(styleId === "general" ? 2 : 0.75);
         doc.line(template.marginLeft, y + 4, pageWidth - template.marginRight, y + 4);
@@ -226,7 +239,10 @@ export function downloadResumePdf({
     doc.setTextColor(15, 23, 42);
     const x = template.marginLeft + (bullet ? 13 : 0);
     const lineWidth = usableWidth - (bullet ? 13 : 0);
-    const wrapped = doc.splitTextToSize(bullet ? stripBullet(line) : line, lineWidth);
+    const wrapped = doc.splitTextToSize(
+      bullet ? stripBullet(displayLine) : displayLine,
+      lineWidth
+    );
     const lineHeight = template.roomy ? 13.5 : 12;
     ensureSpace(wrapped.length * lineHeight + 4);
 
@@ -236,7 +252,11 @@ export function downloadResumePdf({
         doc.text("-", template.marginLeft, y);
         doc.setFont(template.bodyFont, "normal");
       }
-      doc.text(part, x, y);
+      if (lineLink) {
+        doc.textWithLink(part, x, y, { url: lineLink.url });
+      } else {
+        doc.text(part, x, y);
+      }
       y += lineHeight;
     });
     y += template.roomy ? 3 : 1;
@@ -244,6 +264,15 @@ export function downloadResumePdf({
 
   const style = resumeStyles.find((item) => item.id === styleId);
   doc.save(`${style?.label ?? "resume"}.pdf`);
+}
+
+function getLineLink(line: string, links: ResumeLink[]) {
+  return links.find(
+    (link) =>
+      line.includes(link.url) ||
+      line.includes(`[${link.text}](${link.url})`) ||
+      (link.text !== link.url && line.includes(link.text))
+  );
 }
 
 function drawPageChrome(

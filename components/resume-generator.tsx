@@ -16,14 +16,16 @@ import {
   getResumeLines,
   isBulletLine,
   isResumeHeading,
+  lineToDisplayText,
   stripBullet,
 } from "@/lib/resume-text";
-import type { ResumeExportState } from "@/lib/types";
+import type { ResumeExportState, ResumeLink } from "@/lib/types";
 
 const initialState: ResumeExportState = {
   ok: false,
   message: "",
   resumeText: "",
+  links: [],
 };
 
 export function ResumeGenerator() {
@@ -145,6 +147,7 @@ export function ResumeGenerator() {
             disabled={!state.resumeText}
             onClick={() =>
               downloadResumePdf({
+                links: state.links,
                 text: state.resumeText,
                 styleId: selectedStyle,
               })
@@ -164,7 +167,7 @@ export function ResumeGenerator() {
             )}
           >
             {state.resumeText ? (
-              <ResumePreview text={state.resumeText} />
+              <ResumePreview links={state.links} text={state.resumeText} />
             ) : (
               <div className="resume-empty">
                 <h2>Your formatted resume will appear here.</h2>
@@ -181,30 +184,79 @@ export function ResumeGenerator() {
   );
 }
 
-function ResumePreview({ text }: { text: string }) {
+function ResumePreview({
+  links,
+  text,
+}: {
+  links: ResumeLink[];
+  text: string;
+}) {
   const lines = getResumeLines(text);
 
   return (
     <div>
       {lines.map((line, index) => {
         if (index === 0) {
-          return <h1 key={`${line}-${index}`}>{line}</h1>;
+          return (
+            <h1 key={`${line}-${index}`}>
+              <LinkedLine links={links} line={line} />
+            </h1>
+          );
         }
 
         if (isResumeHeading(line)) {
-          return <h2 key={`${line}-${index}`}>{line}</h2>;
+          return (
+            <h2 key={`${line}-${index}`}>
+              <LinkedLine links={links} line={line} />
+            </h2>
+          );
         }
 
         if (isBulletLine(line)) {
           return (
             <p className="resume-bullet" key={`${line}-${index}`}>
-              {stripBullet(line)}
+              <LinkedLine links={links} line={stripBullet(line)} />
             </p>
           );
         }
 
-        return <p key={`${line}-${index}`}>{line}</p>;
+        return (
+          <p key={`${line}-${index}`}>
+            <LinkedLine links={links} line={line} />
+          </p>
+        );
       })}
     </div>
+  );
+}
+
+function LinkedLine({
+  links,
+  line,
+}: {
+  links: ResumeLink[];
+  line: string;
+}) {
+  const display = lineToDisplayText(line);
+  const link = links.find(
+    (item) =>
+      line.includes(item.url) ||
+      line.includes(`[${item.text}](${item.url})`) ||
+      (item.text !== item.url && line.includes(item.text))
+  );
+
+  if (!link) {
+    return display;
+  }
+
+  return (
+    <a
+      className="text-sky-700 underline decoration-sky-400 underline-offset-2"
+      href={link.url}
+      rel="noreferrer"
+      target="_blank"
+    >
+      {display}
+    </a>
   );
 }

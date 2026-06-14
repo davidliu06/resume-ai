@@ -10,9 +10,18 @@ export type Profile = {
 export type ResumeSuggestion = {
   title: string;
   severity: "critical" | "high" | "medium" | "low";
+  category?: string;
   before: string;
   after: string;
   rationale: string;
+  impact?: string;
+};
+
+export type ResumeStyleReview = {
+  verdict: string;
+  strengths: string[];
+  issues: string[];
+  recommendation: string;
 };
 
 export type ResumeAnalysis = {
@@ -21,6 +30,7 @@ export type ResumeAnalysis = {
   rawText: string;
   atsKeywords: string[];
   suggestions: ResumeSuggestion[];
+  styleReview?: ResumeStyleReview;
 };
 
 export type Resume = {
@@ -39,4 +49,26 @@ export type ActionState = {
 
 export type ResumeExportState = ActionState & {
   resumeText: string;
+  links: ResumeLink[];
+};
+
+export type ResumeLink = {
+  text: string;
+  url: string;
+};
+
+export type PortfolioBlock = {
+  id: string;
+  type: "text" | "image" | "frame";
+  text?: string;
+  src?: string;
+  shape?: "rect" | "circle";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+export type PortfolioOptimizeState = ActionState & {
+  blocks: PortfolioBlock[];
 };

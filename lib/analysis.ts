@@ -5,14 +5,23 @@ import OpenAI from "openai";
 import { z } from "zod";
 
 import { requireEnv } from "@/lib/env";
-import type { ResumeAnalysis } from "@/lib/types";
+import type { ResumeAnalysis, ResumeLink } from "@/lib/types";
 
 const suggestionSchema = z.object({
   title: z.string().min(1),
   severity: z.enum(["critical", "high", "medium", "low"]).default("medium"),
+  category: z.string().min(1).optional(),
   before: z.string().min(1),
   after: z.string().min(1),
   rationale: z.string().min(1),
+  impact: z.string().min(1).optional(),
+});
+
+const styleReviewSchema = z.object({
+  verdict: z.string().min(1),
+  strengths: z.array(z.string()).default([]),
+  issues: z.array(z.string()).default([]),
+  recommendation: z.string().min(1),
 });
 
 const analysisSchema = z.object({
@@ -20,21 +29,31 @@ const analysisSchema = z.object({
   score: z.coerce.number().min(0).max(100),
   atsKeywords: z.array(z.string()).default([]),
   suggestions: z.array(suggestionSchema).default([]),
+  styleReview: styleReviewSchema.optional(),
 });
 
 export async function extractPdfText(buffer: Buffer) {
+  return (await extractPdfTextWithLinks(buffer)).text;
+}
+
+export async function extractPdfTextWithLinks(buffer: Buffer) {
   await installPdfDomGlobals();
 
   const errors: unknown[] = [];
 
   try {
-    return normalizeExtractedText(await extractWithPdfParse(buffer));
+    const text = normalizeExtractedText(await extractWithPdfParse(buffer));
+    return { text, links: [] as ResumeLink[] };
   } catch (error) {
     errors.push(error);
   }
 
   try {
-    return normalizeExtractedText(await extractWithPdfJs(buffer));
+    const result = await extractWithPdfJs(buffer);
+    return {
+      text: normalizeExtractedText(result.text),
+      links: dedupeLinks(result.links),
+    };
   } catch (error) {
     errors.push(error);
   }
@@ -70,7 +89,7 @@ async function extractWithPdfParse(buffer: Buffer) {
 
   try {
     const result = await parser.getText({
-      parseHyperlinks: false,
+      parseHyperlinks: true,
       parsePageInfo: false,
       pageJoiner: "\n\n",
     });
@@ -91,10 +110,12 @@ async function extractWithPdfJs(buffer: Buffer) {
   } as unknown as Parameters<typeof pdfjs.getDocument>[0];
   const document = await pdfjs.getDocument(documentInit).promise;
   const pages: string[] = [];
+  const links: ResumeLink[] = [];
 
   try {
     for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
       const page = await document.getPage(pageNumber);
+      const annotations = await page.getAnnotations();
       const content = await page.getTextContent({
         disableNormalization: false,
         includeMarkedContent: false,
@@ -105,13 +126,29 @@ async function extractWithPdfJs(buffer: Buffer) {
         .join(" ");
 
       pages.push(text);
+      annotations.forEach((annotation: unknown) => {
+        const link = annotation as {
+          url?: string;
+          unsafeUrl?: string;
+          title?: string;
+          contents?: string;
+        };
+        const url = link.url ?? link.unsafeUrl;
+
+        if (url?.startsWith("http")) {
+          links.push({
+            text: link.title ?? link.contents ?? url,
+            url,
+          });
+        }
+      });
       page.cleanup();
     }
   } finally {
     await document.destroy();
   }
 
-  return pages.join("\n\n");
+  return { text: pages.join("\n\n"), links };
 }
 
 function getPdfWorkerUrl() {
@@ -128,6 +165,16 @@ function normalizeExtractedText(text: string) {
     .trim();
 }
 
+function dedupeLinks(links: ResumeLink[]) {
+  const seen = new Map<string, ResumeLink>();
+
+  links.forEach((link) => {
+    seen.set(link.url, link);
+  });
+
+  return Array.from(seen.values());
+}
+
 export async function analyzeResumeText(rawText: string): Promise<ResumeAnalysis> {
   const openai = new OpenAI({
     apiKey: requireEnv("OPENAI_API_KEY"),
@@ -140,8 +187,8 @@ export async function analyzeResumeText(rawText: string): Promise<ResumeAnalysis
     messages: [
       {
         role: "system",
-        content:
-          "You are a cynical Technical Recruiter for SpaceX. Evaluate this engineering resume for metrics, technical depth, and ATS keywords. Output JSON only.",
+          content:
+          "You are a cynical Technical Recruiter for SpaceX. Evaluate this engineering resume for metrics, technical depth, ATS keywords, and visual style choices such as hierarchy, bolding, fonts, colors, spacing, and ATS readability. Output JSON only.",
       },
       {
         role: "user",
@@ -154,11 +201,19 @@ export async function analyzeResumeText(rawText: string): Promise<ResumeAnalysis
     {
       "title": "short issue title",
       "severity": "critical" | "high" | "medium" | "low",
+      "category": "Metrics | Technical Depth | ATS Keywords | Formatting | Clarity | Relevance",
       "before": "weak resume excerpt or missing signal",
       "after": "strong rewritten bullet or concrete improvement",
-      "rationale": "why this matters to engineering recruiters"
+      "rationale": "why this matters to engineering recruiters",
+      "impact": "how incorporating this suggestion would improve the resume"
     }
-  ]
+  ],
+  "styleReview": {
+    "verdict": "one sentence on whether the current visual style is right",
+    "strengths": ["style choice that helps"],
+    "issues": ["style choice that hurts"],
+    "recommendation": "what to change about bolding, fonts, colors, spacing, or hierarchy"
+  }
 }
 
 Resume text:

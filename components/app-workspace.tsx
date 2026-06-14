@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   BriefcaseBusiness,
   CreditCard,
+  FilePenLine,
   FileSearch,
   FileText,
   Globe2,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 
 import { signOut } from "@/app/actions";
+import { ImproveResumeWorkspace } from "@/components/improve-resume-workspace";
 import { JobApplications } from "@/components/job-applications";
 import { PixelLogo } from "@/components/pixel-logo";
 import { PortfolioBuilder } from "@/components/portfolio-builder";
@@ -26,6 +28,7 @@ import type { Plan, Resume, ResumeAnalysis } from "@/lib/types";
 
 type WorkspaceMode =
   | "assessment"
+  | "improve"
   | "generator"
   | "portfolio"
   | "jobs"
@@ -42,6 +45,12 @@ const modes: Array<{
     label: "Resume assessment",
     description: "Score and improve a PDF resume",
     icon: FileSearch,
+  },
+  {
+    id: "improve",
+    label: "Improve resume",
+    description: "Edit with accept/decline AI suggestions",
+    icon: FilePenLine,
   },
   {
     id: "generator",
@@ -123,7 +132,7 @@ export function AppWorkspace({
             </div>
           </div>
 
-          <nav className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
+          <nav className="grid gap-2 md:grid-cols-2 xl:grid-cols-6">
             {modes.map((item) => {
               const Icon = item.icon;
               const active = mode === item.id;
@@ -202,6 +211,10 @@ export function AppWorkspace({
               <ReviewFeed analysis={analysis} plan={profile.plan} />
             </section>
           </section>
+        ) : null}
+
+        {mode === "improve" ? (
+          <ImproveResumeWorkspace analysis={analysis} plan={profile.plan} />
         ) : null}
 
         {mode === "generator" ? <ResumeGenerator /> : null}

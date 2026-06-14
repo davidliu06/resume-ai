@@ -1,3 +1,5 @@
+import type { ResumeLink } from "@/lib/types";
+
 export function cleanResumeText(input: string) {
   return input
     .replace(/\r\n/g, "\n")
@@ -59,4 +61,81 @@ export function isBulletLine(line: string) {
 
 export function stripBullet(line: string) {
   return line.replace(/^[-*]\s+/, "").trim();
+}
+
+const markdownLinkPattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+const urlPattern = /https?:\/\/[^\s)]+/g;
+
+export function extractLinksFromText(text: string): ResumeLink[] {
+  const links = new Map<string, ResumeLink>();
+  let match: RegExpExecArray | null;
+
+  while ((match = markdownLinkPattern.exec(text))) {
+    links.set(match[2], {
+      text: match[1],
+      url: match[2],
+    });
+  }
+
+  while ((match = urlPattern.exec(text))) {
+    const cleanUrl = match[0].replace(/[.,;:!?]+$/, "");
+    if (!links.has(cleanUrl)) {
+      links.set(cleanUrl, {
+        text: cleanUrl,
+        url: cleanUrl,
+      });
+    }
+  }
+
+  return Array.from(links.values());
+}
+
+export function mergeResumeLinks(...groups: ResumeLink[][]) {
+  const links = new Map<string, ResumeLink>();
+
+  groups.flat().forEach((link) => {
+    if (link.url.startsWith("http")) {
+      links.set(link.url, link);
+    }
+  });
+
+  return Array.from(links.values());
+}
+
+export function lineToDisplayText(line: string) {
+  return line.replace(markdownLinkPattern, "$1");
+}
+
+export function lineToHtml(line: string) {
+  const markdownLinks: string[] = [];
+  const withoutMarkdown = line.replace(markdownLinkPattern, (_match, label, url) => {
+    const token = `@@LINK_${markdownLinks.length}@@`;
+    markdownLinks.push(
+      `<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(
+        label
+      )}</a>`
+    );
+    return token;
+  });
+
+  let html = escapeHtml(withoutMarkdown)
+    .replace(
+      /(https?:\/\/[^\s<]+)/g,
+      '<a href="$1" target="_blank" rel="noreferrer">$1</a>'
+    );
+
+  markdownLinks.forEach((link, index) => {
+    html = html.replace(`@@LINK_${index}@@`, link);
+  });
+
+  return html;
+}
+
+export function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
