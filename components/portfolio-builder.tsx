@@ -9,9 +9,12 @@ import {
   Globe2,
   ImagePlus,
   Loader2,
+  Minus,
   MousePointer2,
+  Plus,
   Sparkles,
   Square,
+  Trash2,
   Type,
 } from "lucide-react";
 
@@ -28,11 +31,6 @@ const initialState: PortfolioOptimizeState = {
 };
 
 const backgrounds = [
-  {
-    id: "console",
-    label: "Console Grid",
-    description: "Dark technical grid with green shadows.",
-  },
   {
     id: "blueprint",
     label: "Blueprint",
@@ -62,8 +60,9 @@ export function PortfolioBuilder() {
     getStarterBlocks()
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [background, setBackground] = useState<DeckBackground>("console");
+  const [background, setBackground] = useState<DeckBackground>("whiteboard");
   const cleaned = useMemo(() => cleanResumeText(resumeText), [resumeText]);
+  const selectedBlock = blocks.find((block) => block.id === selectedId) ?? null;
 
   function addBlock(type: PortfolioBlock["type"], shape?: "rect" | "circle") {
     const id = crypto.randomUUID();
@@ -74,10 +73,12 @@ export function PortfolioBuilder() {
         type,
         text: type === "text" ? "Edit this text" : undefined,
         shape,
+        fontSize: type === "text" ? 18 : undefined,
         x: 80,
         y: 120 + current.length * 24,
         width: type === "text" ? 300 : 160,
         height: type === "text" ? 88 : 160,
+        zIndex: type === "text" ? 30 : type === "image" ? 20 : 10,
       },
     ]);
     setSelectedId(id);
@@ -101,6 +102,7 @@ export function PortfolioBuilder() {
         id: crypto.randomUUID(),
         type: "image" as const,
         src: await fileToDataUrl(file),
+        zIndex: 20,
         x: 620,
         y: 110 + index * 24,
         width: 220,
@@ -110,6 +112,39 @@ export function PortfolioBuilder() {
 
     setBlocks((current) => [...current, ...newBlocks]);
     setSelectedId(newBlocks[0]?.id ?? null);
+  }
+
+  function deleteSelectedBlock() {
+    if (!selectedId) {
+      return;
+    }
+
+    setBlocks((current) => current.filter((block) => block.id !== selectedId));
+    setSelectedId(null);
+  }
+
+  function resizeSelectedBlock(delta: number) {
+    if (!selectedBlock) {
+      return;
+    }
+
+    updateBlock(selectedBlock.id, {
+      height: Math.max(40, selectedBlock.height + delta),
+      width: Math.max(60, selectedBlock.width + delta),
+    });
+  }
+
+  function adjustSelectedFont(delta: number) {
+    if (!selectedBlock || selectedBlock.type !== "text") {
+      return;
+    }
+
+    updateBlock(selectedBlock.id, {
+      fontSize: Math.min(
+        42,
+        Math.max(8, (selectedBlock.fontSize ?? 18) + delta)
+      ),
+    });
   }
 
   return (
@@ -122,7 +157,7 @@ export function PortfolioBuilder() {
               Resume to portfolio
             </h2>
             <p className="mt-1 text-sm text-slate-400">
-              AI chooses the strongest resume material, then you edit the site
+              AI chooses the strongest resume material, then you edit the PDF
               deck canvas directly.
             </p>
           </div>
@@ -249,6 +284,58 @@ export function PortfolioBuilder() {
           </div>
         </div>
 
+        {selectedBlock ? (
+          <div className="grid gap-2 border-2 border-slate-950 bg-slate-950/70 p-3 shadow-[3px_3px_0_#020617]">
+            <div className="font-mono text-xs font-black uppercase text-slate-300">
+              Selected block
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                className="pixel-icon-button justify-start"
+                onClick={() => resizeSelectedBlock(-16)}
+                type="button"
+              >
+                <Minus className="size-4" />
+                Size
+              </Button>
+              <Button
+                className="pixel-icon-button justify-start"
+                onClick={() => resizeSelectedBlock(16)}
+                type="button"
+              >
+                <Plus className="size-4" />
+                Size
+              </Button>
+              <Button
+                className="pixel-icon-button justify-start"
+                disabled={selectedBlock.type !== "text"}
+                onClick={() => adjustSelectedFont(-1)}
+                type="button"
+              >
+                <Minus className="size-4" />
+                Font
+              </Button>
+              <Button
+                className="pixel-icon-button justify-start"
+                disabled={selectedBlock.type !== "text"}
+                onClick={() => adjustSelectedFont(1)}
+                type="button"
+              >
+                <Plus className="size-4" />
+                Font
+              </Button>
+            </div>
+            <Button
+              className="pixel-icon-button justify-start bg-red-300 text-slate-950 hover:bg-red-200"
+              onClick={deleteSelectedBlock}
+              type="button"
+            >
+              <Trash2 className="size-4" />
+              Delete block
+            </Button>
+          </div>
+        ) : null}
+
         <Button
           className="pixel-button h-11"
           onClick={() => downloadPortfolioPdf(blocks, background)}
@@ -274,15 +361,18 @@ export function PortfolioBuilder() {
           <div
             className={`portfolio-canvas portfolio-canvas-${background} relative h-[540px] min-w-[960px] overflow-hidden`}
           >
-            {blocks.map((block) => (
-              <CanvasBlock
-                block={block}
-                key={block.id}
-                onSelect={() => setSelectedId(block.id)}
-                onUpdate={(patch) => updateBlock(block.id, patch)}
-                selected={selectedId === block.id}
-              />
-            ))}
+            {blocks
+              .slice()
+              .sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0))
+              .map((block) => (
+                <CanvasBlock
+                  block={block}
+                  key={block.id}
+                  onSelect={() => setSelectedId(block.id)}
+                  onUpdate={(patch) => updateBlock(block.id, patch)}
+                  selected={selectedId === block.id}
+                />
+              ))}
           </div>
         </div>
       </div>
@@ -337,6 +427,7 @@ function CanvasBlock({
         left: block.x,
         top: block.y,
         width: block.width,
+        zIndex: block.zIndex ?? 0,
       }}
     >
       {block.type === "text" ? (
@@ -344,6 +435,7 @@ function CanvasBlock({
           className="h-full w-full resize-none border-2 border-slate-950 bg-white/95 p-3 text-sm leading-5 text-slate-950 shadow-[4px_4px_0_#020617] outline-none"
           onChange={(event) => onUpdate({ text: event.target.value })}
           onPointerDown={(event) => event.stopPropagation()}
+          style={{ fontSize: block.fontSize ?? 18 }}
           value={block.text ?? ""}
         />
       ) : null}
@@ -376,29 +468,88 @@ function getStarterBlocks(): PortfolioBlock[] {
     {
       id: crypto.randomUUID(),
       type: "text",
-      text: "Your Name\nEngineering portfolio\nSelected projects, technical systems, and contact links.",
-      x: 48,
-      y: 52,
-      width: 460,
-      height: 140,
+      text: "YOUR NAME\nEngineering Portfolio\nMechanical / Software / Systems",
+      x: 58,
+      y: 54,
+      width: 430,
+      height: 132,
+      fontSize: 22,
+      zIndex: 30,
     },
     {
       id: crypto.randomUUID(),
       type: "frame",
       shape: "circle",
-      x: 760,
-      y: 56,
-      width: 140,
-      height: 140,
+      x: 738,
+      y: 48,
+      width: 154,
+      height: 154,
+      zIndex: 10,
     },
     {
       id: crypto.randomUUID(),
       type: "text",
-      text: "Featured Project\nDescribe the problem, technical approach, tools, and result.",
+      text: "Profile photo",
+      x: 772,
+      y: 106,
+      width: 104,
+      height: 36,
+      fontSize: 14,
+      zIndex: 30,
+    },
+    {
+      id: crypto.randomUUID(),
+      type: "text",
+      text: "PROJECT 01\nProblem, constraints, technical approach, tools, and measurable result.",
+      x: 72,
+      y: 238,
+      width: 360,
+      height: 132,
+      fontSize: 17,
+      zIndex: 30,
+    },
+    {
+      id: crypto.randomUUID(),
+      type: "frame",
+      shape: "rect",
+      x: 392,
+      y: 216,
+      width: 260,
+      height: 170,
+      zIndex: 10,
+    },
+    {
+      id: crypto.randomUUID(),
+      type: "text",
+      text: "PROJECT IMAGE / CAD / SCREENSHOT",
+      x: 424,
+      y: 286,
+      width: 210,
+      height: 42,
+      fontSize: 13,
+      zIndex: 30,
+    },
+    {
+      id: crypto.randomUUID(),
+      type: "text",
+      text: "EXPERIENCE\nCompany / Role / Date\nOne concise line about scope and impact.",
+      x: 690,
+      y: 246,
+      width: 220,
+      height: 122,
+      fontSize: 15,
+      zIndex: 30,
+    },
+    {
+      id: crypto.randomUUID(),
+      type: "text",
+      text: "CONTACT\nemail@example.com | github.com/name | linkedin.com/in/name",
       x: 70,
-      y: 260,
-      width: 380,
-      height: 130,
+      y: 454,
+      width: 760,
+      height: 52,
+      fontSize: 14,
+      zIndex: 30,
     },
   ];
 }
@@ -415,7 +566,10 @@ function downloadPortfolioPdf(
 
   drawDeckBackground(doc, background, pageWidth, pageHeight);
 
-  blocks.forEach((block) => {
+  blocks
+    .slice()
+    .sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0))
+    .forEach((block) => {
     const x = block.x * scaleX;
     const y = block.y * scaleY;
     const width = block.width * scaleX;
@@ -427,7 +581,7 @@ function downloadPortfolioPdf(
       doc.setLineWidth(2);
       doc.rect(x, y, width, height, "FD");
       doc.setFont("helvetica", "normal");
-      doc.setFontSize(10);
+      doc.setFontSize((block.fontSize ?? 18) * 0.72);
       doc.setTextColor(15, 23, 42);
       const lines = doc.splitTextToSize(block.text ?? "", width - 20);
       doc.text(lines, x + 10, y + 18);
@@ -459,7 +613,7 @@ function downloadPortfolioPdf(
       doc.rect(x, y, width, height, "S");
     }
     doc.setLineDashPattern([], 0);
-  });
+    });
 
   doc.save("portfolio-deck.pdf");
 }
@@ -509,11 +663,11 @@ function drawDeckBackground(
     return;
   }
 
-  doc.setFillColor(2, 6, 23);
+  doc.setFillColor(248, 250, 252);
   doc.rect(0, 0, width, height, "F");
-  doc.setDrawColor(34, 197, 94);
-  for (let x = 0; x < width; x += 40) doc.line(x, 0, x, height);
-  for (let y = 0; y < height; y += 40) doc.line(0, y, width, y);
+  doc.setDrawColor(15, 23, 42);
+  doc.setLineWidth(4);
+  doc.rect(18, 18, width - 36, height - 36);
 }
 
 function fileToDataUrl(file: File) {

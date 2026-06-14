@@ -63,10 +63,12 @@ export type PortfolioBlock = {
   text?: string;
   src?: string;
   shape?: "rect" | "circle";
+  fontSize?: number;
   x: number;
   y: number;
   width: number;
   height: number;
+  zIndex?: number;
 };
 
 export type PortfolioOptimizeState = ActionState & {

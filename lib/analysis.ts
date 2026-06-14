@@ -12,7 +12,7 @@ const suggestionSchema = z.object({
   severity: z.enum(["critical", "high", "medium", "low"]).default("medium"),
   category: z.string().min(1).optional(),
   before: z.string().min(1),
-  after: z.string().min(1),
+  after: z.string(),
   rationale: z.string().min(1),
   impact: z.string().min(1).optional(),
 });
@@ -188,7 +188,7 @@ export async function analyzeResumeText(rawText: string): Promise<ResumeAnalysis
       {
         role: "system",
           content:
-          "You are a cynical Technical Recruiter for SpaceX. Evaluate this engineering resume for metrics, technical depth, ATS keywords, and visual style choices such as hierarchy, bolding, fonts, colors, spacing, and ATS readability. Output JSON only.",
+          "You are a cynical Technical Recruiter for SpaceX. Evaluate this engineering resume for metrics, technical depth, ATS keywords, and visual style choices such as hierarchy, bolding, fonts, colors, spacing, and ATS readability. Your suggestions must be concrete phrasing changes, text additions, text subtractions, or line reorder edits, not broad topic advice. Output JSON only.",
       },
       {
         role: "user",
@@ -199,11 +199,11 @@ export async function analyzeResumeText(rawText: string): Promise<ResumeAnalysis
   "atsKeywords": ["keyword"],
   "suggestions": [
     {
-      "title": "short issue title",
+      "title": "short concrete edit title",
       "severity": "critical" | "high" | "medium" | "low",
-      "category": "Metrics | Technical Depth | ATS Keywords | Formatting | Clarity | Relevance",
-      "before": "weak resume excerpt or missing signal",
-      "after": "strong rewritten bullet or concrete improvement",
+      "category": "Phrasing change | Text addition | Text subtraction | Line reorder",
+      "before": "exact weak resume excerpt to replace, or exact text to remove",
+      "after": "replacement text, added text, or empty string for deletion",
       "rationale": "why this matters to engineering recruiters",
       "impact": "how incorporating this suggestion would improve the resume"
     }
@@ -215,6 +215,8 @@ export async function analyzeResumeText(rawText: string): Promise<ResumeAnalysis
     "recommendation": "what to change about bolding, fonts, colors, spacing, or hierarchy"
   }
 }
+
+Return 10-14 suggestions when possible. Do not write generic topics like "Add metrics" by itself. Each suggestion must be a direct edit the Improve Resume tool can apply to the resume text. For additions, put a short insertion cue in before and the exact added text in after. For subtractions, put the exact removable text in before and use an empty after string.
 
 Resume text:
 ${rawText.slice(0, 24000)}`,

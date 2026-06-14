@@ -356,11 +356,11 @@ export async function optimizePortfolioFromResume(
         },
         {
           role: "user",
-          content: `Create editable PDF portfolio deck blocks from this resume. Keep the strongest projects, technical skills, education, and contact links. Drop filler, repetitive bullets, and resume-only details. Return JSON:
+          content: `Create editable PDF portfolio deck blocks from this resume. Use a general engineering portfolio layout: name/title cover, profile-photo frame, project section, experience section, contact section, and image brackets for project/CAD/screenshots. Keep the strongest projects, technical skills, education, and contact links. Drop filler, repetitive bullets, and resume-only details. Use zIndex 10 for frames, 20 for images, 30 for text so empty brackets sit behind images and text can overlap images. Return JSON:
 {
   "blocks": [
-    {"type":"text","text":"site copy","x":40,"y":40,"width":420,"height":90},
-    {"type":"frame","shape":"circle","x":760,"y":48,"width":128,"height":128}
+    {"type":"text","text":"deck copy","x":40,"y":40,"width":420,"height":90,"fontSize":20,"zIndex":30},
+    {"type":"frame","shape":"circle","x":760,"y":48,"width":128,"height":128,"zIndex":10}
   ]
 }
 
@@ -411,10 +411,19 @@ function normalizePortfolioBlocks(input: unknown): PortfolioBlock[] {
           : undefined,
       src: type === "image" ? item.src : undefined,
       shape: item.shape === "circle" ? "circle" : "rect",
+      fontSize: clampNumber(item.fontSize, type === "text" ? 18 : 0, 42),
       x: clampNumber(item.x, 20, 860),
       y: clampNumber(item.y, 20, 920),
       width: clampNumber(item.width, type === "text" ? 220 : 120, 520),
       height: clampNumber(item.height, type === "text" ? 70 : 120, 320),
+      zIndex:
+        typeof item.zIndex === "number"
+          ? clampNumber(item.zIndex, type === "text" ? 30 : 10, 50)
+          : type === "text"
+            ? 30
+            : type === "image"
+              ? 20
+              : 10,
     };
   });
 }

@@ -1,7 +1,7 @@
 import type { ResumeLink } from "@/lib/types";
 
 export function cleanResumeText(input: string) {
-  return input
+  const normalized = input
     .replace(/\r\n/g, "\n")
     .replace(/\r/g, "\n")
     .replace(/\*\*/g, "")
@@ -11,6 +11,8 @@ export function cleanResumeText(input: string) {
     .replace(/[ \t]+\n/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+
+  return dedupeResumeContact(normalized);
 }
 
 export function getResumeLines(input: string) {
@@ -97,7 +99,7 @@ export function getResumeLineRole(line: string, index: number): ResumeLineRole {
     return "bullet";
   }
 
-  if (/^\d{4}\s*[-–]\s*(\d{4}|present|current)$/i.test(display)) {
+  if (/^\d{4}\s*[-\u2013]\s*(\d{4}|present|current)$/i.test(display)) {
     return "date";
   }
 
@@ -105,7 +107,7 @@ export function getResumeLineRole(line: string, index: number): ResumeLineRole {
     /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{4}\b/i.test(
       display
     ) ||
-    /\b\d{4}\b\s*[-–]\s*\b(\d{4}|present|current)\b/i.test(display)
+    /\b\d{4}\b\s*[-\u2013]\s*\b(\d{4}|present|current)\b/i.test(display)
   ) {
     return "date";
   }
@@ -133,6 +135,73 @@ export function getResumeLineRole(line: string, index: number): ResumeLineRole {
   }
 
   return "body";
+}
+
+function dedupeResumeContact(text: string) {
+  const seenContact = new Set<string>();
+
+  return text
+    .split("\n")
+    .map((line) => dedupeContactTokens(line.trim()))
+    .filter((line) => {
+      if (!isContactHeavy(line)) {
+        return true;
+      }
+
+      const key = line.toLowerCase().replace(/\s+/g, " ");
+
+      if (seenContact.has(key)) {
+        return false;
+      }
+
+      seenContact.add(key);
+      return true;
+    })
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+function dedupeContactTokens(line: string) {
+  const tokens = line.split(/(\s*[|\u2022,]\s*|\s{2,})/).filter(Boolean);
+  const seen = new Set<string>();
+
+  return tokens
+    .filter((token) => {
+      const normalized = token.toLowerCase().trim();
+
+      if (!normalized || /^[|\u2022,]+$/.test(normalized)) {
+        return true;
+      }
+
+      const isContact =
+        normalized.includes("@") ||
+        /https?:\/\//.test(normalized) ||
+        /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(normalized);
+
+      if (!isContact) {
+        return true;
+      }
+
+      if (seen.has(normalized)) {
+        return false;
+      }
+
+      seen.add(normalized);
+      return true;
+    })
+    .join("")
+    .replace(/\s*([|\u2022,])\s*([|\u2022,])\s*/g, "$1 ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
+function isContactHeavy(line: string) {
+  return (
+    line.includes("@") ||
+    /https?:\/\//.test(line) ||
+    /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(line)
+  );
 }
 
 const markdownLinkPattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;

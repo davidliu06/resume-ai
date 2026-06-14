@@ -282,12 +282,21 @@ function getRoleStyle(
     };
   }
 
-  if (role === "company" || role === "skillGroup") {
+  if (role === "company") {
     return {
       color: [15, 23, 42] as [number, number, number],
       font: bodyFont,
       size: 10,
       weight: "bold" as const,
+    };
+  }
+
+  if (role === "skillGroup") {
+    return {
+      color: [51, 65, 85] as [number, number, number],
+      font: bodyFont,
+      size: 9.5,
+      weight: "normal" as const,
     };
   }
 

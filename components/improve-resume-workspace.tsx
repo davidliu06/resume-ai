@@ -101,11 +101,11 @@ export function ImproveResumeWorkspace({
           </span>
         </div>
         <Textarea
-          className="min-h-[720px] resize-y rounded-none border-0 bg-white p-8 font-mono text-sm leading-6 text-slate-950 focus-visible:ring-0"
+          className="min-h-[720px] resize-y rounded-none border-0 bg-[#fffdf7] p-8 font-mono text-base leading-7 text-black shadow-inner placeholder:text-slate-500 focus-visible:ring-0"
           onChange={(event) => setResumeText(event.target.value)}
           value={resumeText}
         />
-        <div className="bg-slate-100 px-4 py-3 text-xs text-slate-600">
+        <div className="border-t-2 border-slate-200 bg-[#fff8dc] px-4 py-3 text-xs text-slate-700">
           Tip: click inside the resume to edit text directly. Accepted
           suggestions update this editor, but you can still revise every line.
         </div>
