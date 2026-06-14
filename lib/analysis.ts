@@ -1,4 +1,4 @@
-import { createRequire } from "node:module";
+import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 import OpenAI from "openai";
@@ -21,8 +21,6 @@ const analysisSchema = z.object({
   atsKeywords: z.array(z.string()).default([]),
   suggestions: z.array(suggestionSchema).default([]),
 });
-
-const require = createRequire(import.meta.url);
 
 export async function extractPdfText(buffer: Buffer) {
   await installPdfDomGlobals();
@@ -118,7 +116,7 @@ async function extractWithPdfJs(buffer: Buffer) {
 
 function getPdfWorkerUrl() {
   return pathToFileURL(
-    require.resolve("pdfjs-dist/legacy/build/pdf.worker.mjs")
+    join(process.cwd(), "node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs")
   ).href;
 }
 
