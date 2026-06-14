@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, FilePenLine, Lock, X } from "lucide-react";
+import { Check, Crown, FilePenLine, X } from "lucide-react";
 
-import { createCheckoutSession } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { Plan, ResumeAnalysis } from "@/lib/types";
@@ -12,9 +11,11 @@ type Decision = "accepted" | "declined";
 
 export function ImproveResumeWorkspace({
   analysis,
+  onShowPricing,
   plan,
 }: {
   analysis: ResumeAnalysis | null;
+  onShowPricing: () => void;
   plan: Plan;
 }) {
   const [resumeText, setResumeText] = useState(analysis?.rawText ?? "");
@@ -104,29 +105,35 @@ export function ImproveResumeWorkspace({
           onChange={(event) => setResumeText(event.target.value)}
           value={resumeText}
         />
+        <div className="bg-slate-100 px-4 py-3 text-xs text-slate-600">
+          Tip: click inside the resume to edit text directly. Accepted
+          suggestions update this editor, but you can still revise every line.
+        </div>
       </div>
 
       <div className="grid content-start gap-3">
         {!isPremium ? (
-          <form
-            action={createCheckoutSession}
-            className="pixel-panel bg-emerald-950/40 p-4"
-          >
+          <div className="pixel-panel bg-emerald-950/40 p-4">
             <div className="flex items-start gap-3">
-              <Lock className="mt-1 size-5 text-emerald-300" />
+              <Crown className="mt-1 size-5 text-amber-300" />
               <div>
                 <div className="font-mono text-sm font-black uppercase text-emerald-100">
-                  Improve tools locked
+                  Premium access
                 </div>
                 <p className="mt-1 text-sm leading-6 text-emerald-100/70">
                   Premium Pass unlocks one-click accept and decline decisions.
                 </p>
-                <Button className="pixel-button mt-3 h-10" type="submit">
-                  Unlock Improve Resume
+                <Button
+                  className="pixel-button mt-3 h-10"
+                  onClick={onShowPricing}
+                  type="button"
+                >
+                  <Crown className="size-4" />
+                  View Pricing
                 </Button>
               </div>
             </div>
-          </form>
+          </div>
         ) : null}
 
         {analysis.suggestions.map((suggestion, index) => (

@@ -352,11 +352,11 @@ export async function optimizePortfolioFromResume(
         {
           role: "system",
           content:
-            "You are a portfolio creative director for early-career engineering candidates. Decide what resume material belongs on a concise personal portfolio site. Keep truthful claims only. Output JSON only.",
+            "You are a portfolio creative director for early-career engineering candidates. Decide what resume material belongs in a concise visual PDF portfolio deck. Keep truthful claims only. Output JSON only.",
         },
         {
           role: "user",
-          content: `Create editable portfolio blocks from this resume. Keep the strongest projects, technical skills, education, and contact links. Drop filler, repetitive bullets, and resume-only details. Return JSON:
+          content: `Create editable PDF portfolio deck blocks from this resume. Keep the strongest projects, technical skills, education, and contact links. Drop filler, repetitive bullets, and resume-only details. Return JSON:
 {
   "blocks": [
     {"type":"text","text":"site copy","x":40,"y":40,"width":420,"height":90},

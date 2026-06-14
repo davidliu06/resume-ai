@@ -63,6 +63,78 @@ export function stripBullet(line: string) {
   return line.replace(/^[-*]\s+/, "").trim();
 }
 
+export type ResumeLineRole =
+  | "name"
+  | "contact"
+  | "section"
+  | "company"
+  | "position"
+  | "date"
+  | "skillGroup"
+  | "bullet"
+  | "body";
+
+export function getResumeLineRole(line: string, index: number): ResumeLineRole {
+  const display = lineToDisplayText(line).trim();
+
+  if (index === 0) {
+    return "name";
+  }
+
+  if (
+    display.includes("@") ||
+    /https?:\/\//.test(display) ||
+    /\bgithub\b|\blinkedin\b|\bportfolio\b/i.test(display)
+  ) {
+    return "contact";
+  }
+
+  if (isResumeHeading(display)) {
+    return "section";
+  }
+
+  if (isBulletLine(display)) {
+    return "bullet";
+  }
+
+  if (/^\d{4}\s*[-–]\s*(\d{4}|present|current)$/i.test(display)) {
+    return "date";
+  }
+
+  if (
+    /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+\d{4}\b/i.test(
+      display
+    ) ||
+    /\b\d{4}\b\s*[-–]\s*\b(\d{4}|present|current)\b/i.test(display)
+  ) {
+    return "date";
+  }
+
+  if (/^[A-Za-z][A-Za-z /&+#.-]{2,24}:/.test(display)) {
+    return "skillGroup";
+  }
+
+  if (
+    /\b(engineer|developer|designer|analyst|researcher|intern|assistant|lead|manager|founder|president|captain|tutor)\b/i.test(
+      display
+    )
+  ) {
+    return "position";
+  }
+
+  if (
+    display.length <= 64 &&
+    !/[.!?]$/.test(display) &&
+    /\b(inc|llc|corp|university|college|school|club|lab|systems|technologies|aerospace|space|team|company)\b/i.test(
+      display
+    )
+  ) {
+    return "company";
+  }
+
+  return "body";
+}
+
 const markdownLinkPattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
 const urlPattern = /https?:\/\/[^\s)]+/g;
 

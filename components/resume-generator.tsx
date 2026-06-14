@@ -14,6 +14,7 @@ import {
 } from "@/lib/resume-pdf";
 import {
   getResumeLines,
+  getResumeLineRole,
   isBulletLine,
   isResumeHeading,
   lineToDisplayText,
@@ -196,6 +197,8 @@ function ResumePreview({
   return (
     <div>
       {lines.map((line, index) => {
+        const role = getResumeLineRole(line, index);
+
         if (index === 0) {
           return (
             <h1 key={`${line}-${index}`}>
@@ -204,11 +207,51 @@ function ResumePreview({
           );
         }
 
+        if (role === "contact") {
+          return (
+            <p className="resume-contact" key={`${line}-${index}`}>
+              <LinkedLine links={links} line={line} />
+            </p>
+          );
+        }
+
         if (isResumeHeading(line)) {
           return (
             <h2 key={`${line}-${index}`}>
               <LinkedLine links={links} line={line} />
             </h2>
+          );
+        }
+
+        if (role === "company") {
+          return (
+            <p className="resume-company" key={`${line}-${index}`}>
+              <LinkedLine links={links} line={line} />
+            </p>
+          );
+        }
+
+        if (role === "position") {
+          return (
+            <p className="resume-position" key={`${line}-${index}`}>
+              <LinkedLine links={links} line={line} />
+            </p>
+          );
+        }
+
+        if (role === "date") {
+          return (
+            <p className="resume-date" key={`${line}-${index}`}>
+              <LinkedLine links={links} line={line} />
+            </p>
+          );
+        }
+
+        if (role === "skillGroup") {
+          return (
+            <p className="resume-skill-group" key={`${line}-${index}`}>
+              <LinkedLine links={links} line={line} />
+            </p>
           );
         }
 

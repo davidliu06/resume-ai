@@ -4,6 +4,7 @@ import { jsPDF } from "jspdf";
 
 import {
   getResumeLines,
+  getResumeLineRole,
   isBulletLine,
   isResumeHeading,
   lineToDisplayText,
@@ -173,6 +174,7 @@ export function downloadResumePdf({
 
   lines.forEach((line, index) => {
     const displayLine = lineToDisplayText(line);
+    const role = getResumeLineRole(line, index);
     const heading = index > 0 && isResumeHeading(displayLine);
     const firstLine = index === 0;
     const bullet = isBulletLine(displayLine);
@@ -234,9 +236,10 @@ export function downloadResumePdf({
       return;
     }
 
-    doc.setFont(template.bodyFont, bullet ? "normal" : "normal");
-    doc.setFontSize(9.5);
-    doc.setTextColor(15, 23, 42);
+    const style = getRoleStyle(role, template.bodyFont);
+    doc.setFont(style.font, style.weight);
+    doc.setFontSize(style.size);
+    doc.setTextColor(...style.color);
     const x = template.marginLeft + (bullet ? 13 : 0);
     const lineWidth = usableWidth - (bullet ? 13 : 0);
     const wrapped = doc.splitTextToSize(
@@ -250,7 +253,7 @@ export function downloadResumePdf({
       if (bullet && partIndex === 0) {
         doc.setFont("helvetica", "bold");
         doc.text("-", template.marginLeft, y);
-        doc.setFont(template.bodyFont, "normal");
+        doc.setFont(style.font, style.weight);
       }
       if (lineLink) {
         doc.textWithLink(part, x, y, { url: lineLink.url });
@@ -264,6 +267,54 @@ export function downloadResumePdf({
 
   const style = resumeStyles.find((item) => item.id === styleId);
   doc.save(`${style?.label ?? "resume"}.pdf`);
+}
+
+function getRoleStyle(
+  role: ReturnType<typeof getResumeLineRole>,
+  bodyFont: "helvetica" | "times"
+) {
+  if (role === "contact") {
+    return {
+      color: [51, 65, 85] as [number, number, number],
+      font: bodyFont,
+      size: 8.5,
+      weight: "normal" as const,
+    };
+  }
+
+  if (role === "company" || role === "skillGroup") {
+    return {
+      color: [15, 23, 42] as [number, number, number],
+      font: bodyFont,
+      size: 10,
+      weight: "bold" as const,
+    };
+  }
+
+  if (role === "position") {
+    return {
+      color: [15, 23, 42] as [number, number, number],
+      font: bodyFont,
+      size: 9.5,
+      weight: "italic" as const,
+    };
+  }
+
+  if (role === "date") {
+    return {
+      color: [71, 85, 105] as [number, number, number],
+      font: "helvetica" as const,
+      size: 8.5,
+      weight: "normal" as const,
+    };
+  }
+
+  return {
+    color: [15, 23, 42] as [number, number, number],
+    font: bodyFont,
+    size: 9.5,
+    weight: "normal" as const,
+  };
 }
 
 function getLineLink(line: string, links: ResumeLink[]) {

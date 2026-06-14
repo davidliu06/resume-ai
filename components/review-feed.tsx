@@ -1,6 +1,5 @@
-import { ArrowRight, Lock, Palette, Sparkles, Target } from "lucide-react";
+import { ArrowRight, Crown, Palette, Sparkles, Target } from "lucide-react";
 
-import { createCheckoutSession } from "@/app/actions";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -16,9 +15,11 @@ const severityTone = {
 
 export function ReviewFeed({
   analysis,
+  onShowPricing,
   plan,
 }: {
   analysis: ResumeAnalysis | null;
+  onShowPricing: () => void;
   plan: Plan;
 }) {
   if (!analysis) {
@@ -185,8 +186,8 @@ export function ReviewFeed({
                   {isLocked ? (
                     <div className="absolute inset-0 flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[1px]">
                       <div className="flex items-center gap-2 border-2 border-slate-950 bg-slate-950/90 px-3 py-2 font-mono text-xs uppercase text-slate-200 shadow-[3px_3px_0_#020617]">
-                        <Lock className="size-4 text-emerald-300" />
-                        Before/after locked
+                        <Crown className="size-4 text-amber-300" />
+                        Premium access
                       </div>
                     </div>
                   ) : null}
@@ -198,14 +199,11 @@ export function ReviewFeed({
       </div>
 
       {locked ? (
-        <form
-          action={createCheckoutSession}
-          className="pixel-panel bg-emerald-950/40 p-4"
-        >
+        <div className="pixel-panel bg-emerald-950/40 p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="font-mono text-sm font-black uppercase text-emerald-100">
-                Full review locked
+                Premium access
               </div>
               <p className="mt-1 text-sm text-emerald-100/70">
                 Free accounts see the issue and impact. Premium Pass unlocks
@@ -214,13 +212,14 @@ export function ReviewFeed({
             </div>
             <Button
               className="pixel-button h-10"
-              type="submit"
+              onClick={onShowPricing}
+              type="button"
             >
-              <Lock className="size-4" />
-              Unlock Full Review
+              <Crown className="size-4" />
+              View Pricing
             </Button>
           </div>
-        </form>
+        </div>
       ) : null}
     </div>
   );

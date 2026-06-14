@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   BriefcaseBusiness,
   CreditCard,
+  Crown,
   FilePenLine,
   FileSearch,
   FileText,
@@ -39,6 +40,7 @@ const modes: Array<{
   label: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
+  premium?: boolean;
 }> = [
   {
     id: "assessment",
@@ -51,18 +53,21 @@ const modes: Array<{
     label: "Improve resume",
     description: "Edit with accept/decline AI suggestions",
     icon: FilePenLine,
+    premium: true,
   },
   {
     id: "generator",
     label: "Resume generator",
     description: "Format text or PDF into styles",
     icon: FileText,
+    premium: true,
   },
   {
     id: "portfolio",
     label: "Resume to portfolio",
-    description: "Create website copy from a resume",
+    description: "Build a PDF portfolio deck",
     icon: Globe2,
+    premium: true,
   },
   {
     id: "jobs",
@@ -136,6 +141,7 @@ export function AppWorkspace({
             {modes.map((item) => {
               const Icon = item.icon;
               const active = mode === item.id;
+              const premiumLocked = item.premium && profile.plan !== "pro";
 
               return (
                 <button
@@ -144,12 +150,20 @@ export function AppWorkspace({
                     active && "is-active"
                   )}
                   key={item.id}
-                  onClick={() => setMode(item.id)}
+                  onClick={() => setMode(premiumLocked ? "pricing" : item.id)}
                   type="button"
                 >
-                  <span className="flex items-center gap-2 font-mono text-xs font-black uppercase">
-                    <Icon className="size-4" />
-                    {item.label}
+                  <span className="flex flex-wrap items-center gap-2 font-mono text-xs font-black uppercase">
+                    <span className="inline-flex items-center gap-2">
+                      <Icon className="size-4" />
+                      {item.label}
+                    </span>
+                    {item.premium ? (
+                      <span className="inline-flex items-center gap-1 border-2 border-slate-950 bg-amber-300 px-1.5 py-0.5 text-[10px] text-slate-950 shadow-[2px_2px_0_#020617]">
+                        <Crown className="size-3" />
+                        Premium
+                      </span>
+                    ) : null}
                   </span>
                   <span className="mt-2 block text-xs leading-5 text-slate-400 group-[.is-active]:text-slate-950/70">
                     {item.description}
@@ -208,13 +222,21 @@ export function AppWorkspace({
             </aside>
 
             <section className="min-w-0">
-              <ReviewFeed analysis={analysis} plan={profile.plan} />
+              <ReviewFeed
+                analysis={analysis}
+                onShowPricing={() => setMode("pricing")}
+                plan={profile.plan}
+              />
             </section>
           </section>
         ) : null}
 
         {mode === "improve" ? (
-          <ImproveResumeWorkspace analysis={analysis} plan={profile.plan} />
+          <ImproveResumeWorkspace
+            analysis={analysis}
+            onShowPricing={() => setMode("pricing")}
+            plan={profile.plan}
+          />
         ) : null}
 
         {mode === "generator" ? <ResumeGenerator /> : null}

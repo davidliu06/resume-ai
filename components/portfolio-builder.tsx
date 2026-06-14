@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
+import { jsPDF } from "jspdf";
 import {
   Circle,
   Download,
@@ -17,7 +18,7 @@ import {
 import { optimizePortfolioFromResume } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { cleanResumeText, lineToHtml } from "@/lib/resume-text";
+import { cleanResumeText } from "@/lib/resume-text";
 import type { PortfolioBlock, PortfolioOptimizeState } from "@/lib/types";
 
 const initialState: PortfolioOptimizeState = {
@@ -25,6 +26,31 @@ const initialState: PortfolioOptimizeState = {
   message: "",
   blocks: [],
 };
+
+const backgrounds = [
+  {
+    id: "console",
+    label: "Console Grid",
+    description: "Dark technical grid with green shadows.",
+  },
+  {
+    id: "blueprint",
+    label: "Blueprint",
+    description: "Engineering blueprint blue with cyan rules.",
+  },
+  {
+    id: "whiteboard",
+    label: "Whiteboard",
+    description: "Clean white slide with black editorial framing.",
+  },
+  {
+    id: "launch",
+    label: "Launch Pad",
+    description: "Deep slate with amber highlight blocks.",
+  },
+] as const;
+
+type DeckBackground = (typeof backgrounds)[number]["id"];
 
 export function PortfolioBuilder() {
   const [state, action, pending] = useActionState(
@@ -36,6 +62,7 @@ export function PortfolioBuilder() {
     getStarterBlocks()
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [background, setBackground] = useState<DeckBackground>("console");
   const cleaned = useMemo(() => cleanResumeText(resumeText), [resumeText]);
 
   function addBlock(type: PortfolioBlock["type"], shape?: "rect" | "circle") {
@@ -96,7 +123,7 @@ export function PortfolioBuilder() {
             </h2>
             <p className="mt-1 text-sm text-slate-400">
               AI chooses the strongest resume material, then you edit the site
-              canvas directly.
+              deck canvas directly.
             </p>
           </div>
         </div>
@@ -122,7 +149,7 @@ export function PortfolioBuilder() {
           ) : (
             <Sparkles className="size-4" />
           )}
-          {pending ? "Optimizing portfolio" : "AI optimize portfolio"}
+          {pending ? "Optimizing deck" : "AI optimize deck"}
         </Button>
 
         {state.message ? (
@@ -151,6 +178,33 @@ export function PortfolioBuilder() {
             Use optimized canvas
           </Button>
         ) : null}
+
+        <div className="grid gap-2">
+          <div className="font-mono text-xs font-black uppercase text-slate-400">
+            Slide background
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {backgrounds.map((item) => (
+              <button
+                className={`border-2 border-slate-950 p-3 text-left shadow-[3px_3px_0_#020617] ${
+                  background === item.id
+                    ? "bg-emerald-300 text-slate-950"
+                    : "bg-slate-900 text-slate-200"
+                }`}
+                key={item.id}
+                onClick={() => setBackground(item.id)}
+                type="button"
+              >
+                <span className="block font-mono text-xs font-black uppercase">
+                  {item.label}
+                </span>
+                <span className="mt-1 block text-xs opacity-70">
+                  {item.description}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="grid gap-2">
           <div className="font-mono text-xs font-black uppercase text-slate-400">
@@ -197,11 +251,11 @@ export function PortfolioBuilder() {
 
         <Button
           className="pixel-button h-11"
-          onClick={() => downloadPortfolioHtml(blocks)}
+          onClick={() => downloadPortfolioPdf(blocks, background)}
           type="button"
         >
           <Download className="size-4" />
-          Download site HTML
+          Download PDF deck
         </Button>
       </form>
 
@@ -209,7 +263,7 @@ export function PortfolioBuilder() {
         <div className="flex flex-col gap-3 border-b-2 border-slate-950 bg-slate-800 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 font-mono text-sm font-black uppercase text-slate-50">
             <MousePointer2 className="size-4 text-emerald-200" />
-            Portfolio canvas
+            Portfolio deck
           </div>
           <div className="text-xs text-slate-400">
             Drag blocks. Edit text directly.
@@ -217,7 +271,9 @@ export function PortfolioBuilder() {
         </div>
 
         <div className="overflow-auto bg-slate-950 p-4">
-          <div className="portfolio-canvas relative h-[760px] min-w-[980px] overflow-hidden">
+          <div
+            className={`portfolio-canvas portfolio-canvas-${background} relative h-[540px] min-w-[960px] overflow-hidden`}
+          >
             {blocks.map((block) => (
               <CanvasBlock
                 block={block}
@@ -347,50 +403,118 @@ function getStarterBlocks(): PortfolioBlock[] {
   ];
 }
 
-function downloadPortfolioHtml(blocks: PortfolioBlock[]) {
-  const blockHtml = blocks.map(blockToHtml).join("\n");
-  const html = `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Portfolio</title>
-  <style>${portfolioExportCss}</style>
-</head>
-<body>
-  <main class="site-canvas">${blockHtml}</main>
-</body>
-</html>`;
+function downloadPortfolioPdf(
+  blocks: PortfolioBlock[],
+  background: DeckBackground
+) {
+  const doc = new jsPDF({ format: "letter", orientation: "landscape", unit: "pt" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const scaleX = pageWidth / 960;
+  const scaleY = pageHeight / 540;
 
-  const blob = new Blob([html], { type: "text/html" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "portfolio.html";
-  link.click();
-  URL.revokeObjectURL(url);
+  drawDeckBackground(doc, background, pageWidth, pageHeight);
+
+  blocks.forEach((block) => {
+    const x = block.x * scaleX;
+    const y = block.y * scaleY;
+    const width = block.width * scaleX;
+    const height = block.height * scaleY;
+
+    if (block.type === "text") {
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(2, 6, 23);
+      doc.setLineWidth(2);
+      doc.rect(x, y, width, height, "FD");
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(15, 23, 42);
+      const lines = doc.splitTextToSize(block.text ?? "", width - 20);
+      doc.text(lines, x + 10, y + 18);
+      return;
+    }
+
+    if (block.type === "image" && block.src) {
+      doc.addImage(
+        block.src,
+        getImageFormat(block.src),
+        x,
+        y,
+        width,
+        height,
+        undefined,
+        "FAST"
+      );
+      doc.setDrawColor(2, 6, 23);
+      doc.rect(x, y, width, height);
+      return;
+    }
+
+    doc.setDrawColor(134, 239, 172);
+    doc.setFillColor(34, 197, 94);
+    doc.setLineDashPattern([5, 4], 0);
+    if (block.shape === "circle") {
+      doc.circle(x + width / 2, y + height / 2, Math.min(width, height) / 2, "S");
+    } else {
+      doc.rect(x, y, width, height, "S");
+    }
+    doc.setLineDashPattern([], 0);
+  });
+
+  doc.save("portfolio-deck.pdf");
 }
 
-function blockToHtml(block: PortfolioBlock) {
-  const style = `left:${block.x}px;top:${block.y}px;width:${block.width}px;height:${block.height}px;`;
-
-  if (block.type === "text") {
-    return `<section class="text-block" style="${style}">${lineToHtml(
-      block.text ?? ""
-    ).replaceAll("\n", "<br />")}</section>`;
+function getImageFormat(src: string) {
+  if (src.startsWith("data:image/jpeg") || src.startsWith("data:image/jpg")) {
+    return "JPEG";
   }
 
-  if (block.type === "image" && block.src) {
-    return `<img class="image-block" style="${style}" src="${block.src}" alt="" />`;
+  if (src.startsWith("data:image/webp")) {
+    return "WEBP";
   }
 
-  return `<div class="frame-block ${
-    block.shape === "circle" ? "circle" : ""
-  }" style="${style}"></div>`;
+  return "PNG";
 }
 
-const portfolioExportCss =
-  "body{margin:0;background:#020617;color:#e2e8f0;font-family:Inter,Arial,sans-serif}.site-canvas{position:relative;width:980px;height:760px;margin:0 auto;background:linear-gradient(135deg,#0f172a,#111827);overflow:hidden}.site-canvas:before{content:'';position:absolute;inset:0;background-image:linear-gradient(to right,rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,.05) 1px,transparent 1px);background-size:48px 48px}.text-block,.image-block,.frame-block{position:absolute;box-sizing:border-box}.text-block{background:rgba(248,250,252,.96);color:#0f172a;border:3px solid #020617;box-shadow:8px 8px 0 #22c55e;padding:16px;line-height:1.45;font-size:16px;white-space:pre-wrap}.text-block a{color:#0369a1}.image-block{object-fit:cover;border:3px solid #020617;box-shadow:8px 8px 0 #22c55e}.frame-block{border:3px dashed #86efac;background:rgba(34,197,94,.12)}.frame-block.circle{border-radius:999px}";
+function drawDeckBackground(
+  doc: jsPDF,
+  background: DeckBackground,
+  width: number,
+  height: number
+) {
+  if (background === "blueprint") {
+    doc.setFillColor(8, 47, 73);
+    doc.rect(0, 0, width, height, "F");
+    doc.setDrawColor(125, 211, 252);
+    for (let x = 0; x < width; x += 36) doc.line(x, 0, x, height);
+    for (let y = 0; y < height; y += 36) doc.line(0, y, width, y);
+    return;
+  }
+
+  if (background === "whiteboard") {
+    doc.setFillColor(248, 250, 252);
+    doc.rect(0, 0, width, height, "F");
+    doc.setDrawColor(15, 23, 42);
+    doc.setLineWidth(4);
+    doc.rect(18, 18, width - 36, height - 36);
+    return;
+  }
+
+  if (background === "launch") {
+    doc.setFillColor(15, 23, 42);
+    doc.rect(0, 0, width, height, "F");
+    doc.setFillColor(251, 191, 36);
+    doc.rect(0, 0, width, 18, "F");
+    doc.rect(0, height - 18, width, 18, "F");
+    return;
+  }
+
+  doc.setFillColor(2, 6, 23);
+  doc.rect(0, 0, width, height, "F");
+  doc.setDrawColor(34, 197, 94);
+  for (let x = 0; x < width; x += 40) doc.line(x, 0, x, height);
+  for (let y = 0; y < height; y += 40) doc.line(0, y, width, y);
+}
 
 function fileToDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
