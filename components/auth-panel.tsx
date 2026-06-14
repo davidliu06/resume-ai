@@ -26,13 +26,13 @@ export function AuthPanel() {
   const state = mode === "signin" ? signInState : signUpState;
 
   return (
-    <div className="w-full max-w-md rounded-lg border border-white/10 bg-slate-900/70 p-5 shadow-2xl shadow-black/30 backdrop-blur">
-      <div className="mb-5 flex rounded-lg border border-white/10 bg-slate-950/70 p-1">
+    <div className="pixel-panel w-full max-w-md p-5">
+      <div className="mb-5 flex border-2 border-slate-950 bg-slate-950 p-1 shadow-[3px_3px_0_#020617]">
         <button
           type="button"
-          className={`h-8 flex-1 rounded-md text-sm transition ${
+          className={`h-9 flex-1 font-mono text-xs font-black uppercase transition ${
             mode === "signin"
-              ? "bg-white text-slate-950"
+              ? "bg-emerald-300 text-slate-950"
               : "text-slate-400 hover:text-slate-100"
           }`}
           onClick={() => setMode("signin")}
@@ -41,9 +41,9 @@ export function AuthPanel() {
         </button>
         <button
           type="button"
-          className={`h-8 flex-1 rounded-md text-sm transition ${
+          className={`h-9 flex-1 font-mono text-xs font-black uppercase transition ${
             mode === "signup"
-              ? "bg-white text-slate-950"
+              ? "bg-emerald-300 text-slate-950"
               : "text-slate-400 hover:text-slate-100"
           }`}
           onClick={() => setMode("signup")}
@@ -59,7 +59,7 @@ export function AuthPanel() {
         <label className="grid gap-1.5 text-sm text-slate-300">
           Email
           <Input
-            className="h-10 border-white/10 bg-slate-950/70"
+            className="pixel-input h-11"
             name="email"
             type="email"
             autoComplete="email"
@@ -69,7 +69,7 @@ export function AuthPanel() {
         <label className="grid gap-1.5 text-sm text-slate-300">
           Password
           <Input
-            className="h-10 border-white/10 bg-slate-950/70"
+            className="pixel-input h-11"
             name="password"
             type="password"
             autoComplete={mode === "signin" ? "current-password" : "new-password"}
@@ -80,10 +80,10 @@ export function AuthPanel() {
 
         {state.message ? (
           <p
-            className={`rounded-md border px-3 py-2 text-sm ${
+            className={`border-2 px-3 py-2 font-mono text-xs ${
               state.ok
-                ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"
-                : "border-red-400/25 bg-red-400/10 text-red-200"
+                ? "border-emerald-300 bg-emerald-950/50 text-emerald-100"
+                : "border-red-300 bg-red-950/50 text-red-100"
             }`}
             aria-live="polite"
           >
@@ -92,7 +92,7 @@ export function AuthPanel() {
         ) : null}
 
         <Button
-          className="h-10 bg-emerald-300 text-slate-950 hover:bg-emerald-200"
+          className="pixel-button h-11"
           disabled={signInPending || signUpPending}
           type="submit"
         >

@@ -8,7 +8,7 @@ import Stripe from "stripe";
 import { analyzeResumeText, extractPdfText } from "@/lib/analysis";
 import { requireEnv } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { ActionState, Profile } from "@/lib/types";
+import type { ActionState, LinkedInResumeState, Profile } from "@/lib/types";
 
 const MAX_PDF_BYTES = 8 * 1024 * 1024;
 
@@ -230,6 +230,87 @@ export async function uploadResume(
     return {
       ok: false,
       message: friendlyUploadError(error),
+    };
+  }
+}
+
+export async function convertLinkedInToResume(
+  _prevState: LinkedInResumeState,
+  formData: FormData
+): Promise<LinkedInResumeState> {
+  try {
+    await getAuthedUser();
+
+    const profileText = String(formData.get("profileText") ?? "").trim();
+    const targetRole = String(formData.get("targetRole") ?? "").trim();
+    const tone = String(formData.get("tone") ?? "technical").trim();
+
+    if (profileText.length < 400) {
+      return {
+        ok: false,
+        message:
+          "Paste more LinkedIn content first: headline, about, experience, projects, skills, and education.",
+        resumeMarkdown: "",
+      };
+    }
+
+    const openai = new (await import("openai")).default({
+      apiKey: requireEnv("OPENAI_API_KEY"),
+    });
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.25,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You convert LinkedIn profile text into a concise ATS-friendly engineering resume. Do not invent employers, degrees, dates, metrics, tools, or awards. If a metric is missing, write a stronger bullet without fake numbers. Output Markdown only.",
+        },
+        {
+          role: "user",
+          content: `Target role: ${targetRole || "engineering internship"}
+Tone: ${tone}
+
+Create a one-page resume draft with these sections:
+- Name and contact line if present
+- Professional Summary
+- Education
+- Skills grouped by category
+- Experience
+- Projects
+- Leadership or Awards if present
+
+Use strong action verbs, technical depth, and ATS keywords. Keep bullets crisp.
+
+LinkedIn/profile text:
+${profileText.slice(0, 18000)}`,
+        },
+      ],
+    });
+
+    const resumeMarkdown = completion.choices[0]?.message.content?.trim();
+
+    if (!resumeMarkdown) {
+      return {
+        ok: false,
+        message: "The converter did not return a resume draft. Try again.",
+        resumeMarkdown: "",
+      };
+    }
+
+    return {
+      ok: true,
+      message: "Resume draft generated from LinkedIn/profile content.",
+      resumeMarkdown,
+    };
+  } catch (error) {
+    console.error("LinkedIn conversion failed", error);
+
+    return {
+      ok: false,
+      message: friendlyUploadError(error),
+      resumeMarkdown: "",
     };
   }
 }

@@ -19,16 +19,16 @@ export function ResumeUploadForm() {
   return (
     <form
       action={action}
-      className="grid gap-3 rounded-lg border border-white/10 bg-slate-900/65 p-4"
+      className="pixel-panel grid gap-3 p-4"
     >
-      <div className="flex items-center gap-2 text-sm font-medium text-slate-100">
+      <div className="flex items-center gap-2 font-mono text-sm font-black uppercase text-slate-100">
         <ScanSearch className="size-4 text-emerald-300" />
         New resume review
       </div>
       <label className="grid gap-2 text-sm text-slate-300">
         <span className="sr-only">PDF resume</span>
         <Input
-          className="h-10 border-white/10 bg-slate-950/70 file:text-slate-200"
+          className="pixel-input h-11 file:text-slate-200"
           name="resume"
           type="file"
           accept="application/pdf,.pdf"
@@ -37,10 +37,10 @@ export function ResumeUploadForm() {
       </label>
       {state.message ? (
         <p
-          className={`rounded-md border px-3 py-2 text-sm ${
+          className={`border-2 px-3 py-2 font-mono text-xs ${
             state.ok
-              ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-200"
-              : "border-red-400/25 bg-red-400/10 text-red-200"
+              ? "border-emerald-300 bg-emerald-950/50 text-emerald-100"
+              : "border-red-300 bg-red-950/50 text-red-100"
           }`}
           aria-live="polite"
         >
@@ -48,7 +48,7 @@ export function ResumeUploadForm() {
         </p>
       ) : null}
       <Button
-        className="h-10 bg-emerald-300 text-slate-950 hover:bg-emerald-200"
+        className="pixel-button h-11"
         disabled={pending}
         type="submit"
       >

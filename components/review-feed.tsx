@@ -23,7 +23,7 @@ export function ReviewFeed({
 }) {
   if (!analysis) {
     return (
-      <div className="flex min-h-[540px] items-center justify-center rounded-lg border border-dashed border-white/12 bg-slate-900/35 p-8 text-center">
+      <div className="pixel-panel flex min-h-[540px] items-center justify-center border-dashed p-8 text-center">
         <div className="max-w-sm">
           <Sparkles className="mx-auto mb-4 size-8 text-emerald-300" />
           <h2 className="text-lg font-semibold text-slate-100">
@@ -42,7 +42,7 @@ export function ReviewFeed({
 
   return (
     <div className="grid gap-4">
-      <div className="rounded-lg border border-white/10 bg-slate-900/65 p-4">
+      <div className="pixel-panel p-4">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-2 text-sm font-medium text-slate-100">
@@ -65,7 +65,7 @@ export function ReviewFeed({
           <div className="mt-4 flex flex-wrap gap-2">
             {analysis.atsKeywords.slice(0, 12).map((keyword) => (
               <Badge
-                className="border-white/10 bg-white/[0.04] text-slate-300"
+                className="pixel-badge border-slate-950 bg-slate-800 text-slate-300"
                 key={keyword}
                 variant="outline"
               >
@@ -82,7 +82,7 @@ export function ReviewFeed({
 
           return (
             <div
-              className="relative overflow-hidden rounded-lg border border-white/10 bg-slate-900/65"
+              className="pixel-panel relative overflow-hidden"
               key={`${suggestion.title}-${index}`}
             >
               <div
@@ -109,8 +109,8 @@ export function ReviewFeed({
                 </div>
 
                 <div className="grid gap-3 lg:grid-cols-[1fr_auto_1fr]">
-                  <div className="rounded-md border border-red-300/15 bg-red-950/20 p-3">
-                    <div className="mb-2 text-xs font-medium uppercase text-red-200/80">
+                  <div className="border-2 border-slate-950 bg-red-950/30 p-3 shadow-[3px_3px_0_#020617]">
+                    <div className="mb-2 font-mono text-xs font-black uppercase text-red-200/80">
                       Before
                     </div>
                     <p className="text-sm leading-6 text-slate-300">
@@ -120,8 +120,8 @@ export function ReviewFeed({
                   <div className="hidden items-center text-slate-500 lg:flex">
                     <ArrowRight className="size-4" />
                   </div>
-                  <div className="rounded-md border border-emerald-300/15 bg-emerald-950/20 p-3">
-                    <div className="mb-2 text-xs font-medium uppercase text-emerald-200/80">
+                  <div className="border-2 border-slate-950 bg-emerald-950/30 p-3 shadow-[3px_3px_0_#020617]">
+                    <div className="mb-2 font-mono text-xs font-black uppercase text-emerald-200/80">
                       After
                     </div>
                     <p className="text-sm leading-6 text-slate-200">
@@ -137,7 +137,7 @@ export function ReviewFeed({
 
               {isLocked ? (
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-[1px]">
-                  <div className="flex items-center gap-2 rounded-md border border-white/10 bg-slate-950/90 px-3 py-2 text-sm text-slate-200">
+                  <div className="flex items-center gap-2 border-2 border-slate-950 bg-slate-950/90 px-3 py-2 font-mono text-xs uppercase text-slate-200 shadow-[3px_3px_0_#020617]">
                     <Lock className="size-4 text-emerald-300" />
                     Pro suggestion
                   </div>
@@ -151,11 +151,11 @@ export function ReviewFeed({
       {locked ? (
         <form
           action={createCheckoutSession}
-          className="rounded-lg border border-emerald-300/20 bg-emerald-300/10 p-4"
+          className="pixel-panel bg-emerald-950/40 p-4"
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-sm font-medium text-emerald-100">
+              <div className="font-mono text-sm font-black uppercase text-emerald-100">
                 Full review locked
               </div>
               <p className="mt-1 text-sm text-emerald-100/70">
@@ -163,7 +163,7 @@ export function ReviewFeed({
               </p>
             </div>
             <Button
-              className="h-9 bg-emerald-300 text-slate-950 hover:bg-emerald-200"
+              className="pixel-button h-10"
               type="submit"
             >
               <Lock className="size-4" />

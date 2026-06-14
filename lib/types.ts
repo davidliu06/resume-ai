@@ -36,3 +36,7 @@ export type ActionState = {
   ok: boolean;
   message: string;
 };
+
+export type LinkedInResumeState = ActionState & {
+  resumeMarkdown: string;
+};
