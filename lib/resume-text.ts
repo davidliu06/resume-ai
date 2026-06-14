@@ -12,7 +12,7 @@ export function cleanResumeText(input: string) {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 
-  return dedupeResumeContact(normalized);
+  return removeEmptySections(dedupeResumeContact(normalized));
 }
 
 export function getResumeLines(input: string) {
@@ -148,13 +148,18 @@ function dedupeResumeContact(text: string) {
         return true;
       }
 
-      const key = line.toLowerCase().replace(/\s+/g, " ");
+      const contactParts = getContactParts(line);
+      const key = contactParts.length
+        ? contactParts.join("|")
+        : line.toLowerCase().replace(/\s+/g, " ");
+      const hasNewContact = contactParts.some((part) => !seenContact.has(part));
 
-      if (seenContact.has(key)) {
+      if (seenContact.has(key) || (contactParts.length > 0 && !hasNewContact)) {
         return false;
       }
 
       seenContact.add(key);
+      contactParts.forEach((part) => seenContact.add(part));
       return true;
     })
     .join("\n")
@@ -163,35 +168,43 @@ function dedupeResumeContact(text: string) {
 }
 
 function dedupeContactTokens(line: string) {
-  const tokens = line.split(/(\s*[|\u2022,]\s*|\s{2,})/).filter(Boolean);
-  const seen = new Set<string>();
+  const seenEmails = new Set<string>();
+  const seenPhones = new Set<string>();
+  const seenUrls = new Set<string>();
 
-  return tokens
-    .filter((token) => {
-      const normalized = token.toLowerCase().trim();
+  return line
+    .replace(emailPattern, (match) => {
+      const key = match.toLowerCase();
 
-      if (!normalized || /^[|\u2022,]+$/.test(normalized)) {
-        return true;
+      if (seenEmails.has(key)) {
+        return "";
       }
 
-      const isContact =
-        normalized.includes("@") ||
-        /https?:\/\//.test(normalized) ||
-        /\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/.test(normalized);
-
-      if (!isContact) {
-        return true;
-      }
-
-      if (seen.has(normalized)) {
-        return false;
-      }
-
-      seen.add(normalized);
-      return true;
+      seenEmails.add(key);
+      return match;
     })
-    .join("")
+    .replace(phonePattern, (match) => {
+      const key = normalizePhone(match);
+
+      if (seenPhones.has(key)) {
+        return "";
+      }
+
+      seenPhones.add(key);
+      return match;
+    })
+    .replace(urlPattern, (match) => {
+      const key = match.toLowerCase().replace(/\/$/, "");
+
+      if (seenUrls.has(key)) {
+        return "";
+      }
+
+      seenUrls.add(key);
+      return match;
+    })
     .replace(/\s*([|\u2022,])\s*([|\u2022,])\s*/g, "$1 ")
+    .replace(/^[\s|\u2022,]+|[\s|\u2022,]+$/g, "")
     .replace(/\s{2,}/g, " ")
     .trim();
 }
@@ -204,8 +217,74 @@ function isContactHeavy(line: string) {
   );
 }
 
+function getContactParts(line: string) {
+  const emails = Array.from(line.matchAll(emailPattern)).map((match) =>
+    match[0].toLowerCase()
+  );
+  const phones = Array.from(line.matchAll(phonePattern)).map((match) =>
+    normalizePhone(match[0])
+  );
+  const urls = Array.from(line.matchAll(urlPattern)).map((match) =>
+    match[0].toLowerCase().replace(/\/$/, "")
+  );
+
+  return [...emails, ...phones, ...urls].sort();
+}
+
+function normalizePhone(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function removeEmptySections(text: string) {
+  const lines = text.split("\n");
+  const result: string[] = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index].trim();
+
+    if (!line) {
+      result.push(line);
+      continue;
+    }
+
+    if (!isResumeHeading(line)) {
+      result.push(lines[index]);
+      continue;
+    }
+
+    let hasContent = false;
+
+    for (
+      let nextIndex = index + 1;
+      nextIndex < lines.length;
+      nextIndex += 1
+    ) {
+      const nextLine = lines[nextIndex].trim();
+
+      if (!nextLine) {
+        continue;
+      }
+
+      if (isResumeHeading(nextLine)) {
+        break;
+      }
+
+      hasContent = true;
+      break;
+    }
+
+    if (hasContent) {
+      result.push(lines[index]);
+    }
+  }
+
+  return result.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 const markdownLinkPattern = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
 const urlPattern = /https?:\/\/[^\s)]+/g;
+const emailPattern = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+const phonePattern = /(?:\+?1[\s.-]?)?(?:\(?\d{3}\)?[\s.-]?)\d{3}[\s.-]?\d{4}/g;
 
 export function extractLinksFromText(text: string): ResumeLink[] {
   const links = new Map<string, ResumeLink>();

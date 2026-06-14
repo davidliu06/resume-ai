@@ -356,7 +356,25 @@ export async function optimizePortfolioFromResume(
         },
         {
           role: "user",
-          content: `Create editable PDF portfolio deck blocks from this resume. Use a general engineering portfolio layout: name/title cover, profile-photo frame, project section, experience section, contact section, and image brackets for project/CAD/screenshots. Keep the strongest projects, technical skills, education, and contact links. Drop filler, repetitive bullets, and resume-only details. Use zIndex 10 for frames, 20 for images, 30 for text so empty brackets sit behind images and text can overlap images. Return JSON:
+          content: `Create editable PDF portfolio deck blocks from this resume. You are designing a single polished landscape PDF portfolio canvas, not a website. Use the resume to decide the content and layout.
+
+Required sections:
+- Name and title headline.
+- About Me: 2-3 concise lines about the candidate's engineering focus.
+- Skills: compact grouped skill chips or short columns.
+- Projects: at least one featured project with project name, short description, technical details, and an image/CAD/screenshot frame.
+- Experience: a timeline or stacked role block, not the same shape as the project block.
+- Contact: email, LinkedIn, GitHub, portfolio, or other real links when present.
+
+Layout rules:
+- Do not make every section the same kind of box.
+- Use varied block sizes, spacing, and positions: large title, small skill chips, image brackets, timeline blocks, footer contact strip.
+- Include image frames for profile and project visuals. Empty frames must sit under images, and text can overlap images when useful.
+- Keep truthful claims only. Drop filler, repeated bullets, and resume-only details.
+- Use zIndex 10 for frames, 20 for images, 30 for text.
+- Coordinates target a 960 x 540 canvas. Keep all blocks inside the canvas with breathing room.
+
+Return JSON:
 {
   "blocks": [
     {"type":"text","text":"deck copy","x":40,"y":40,"width":420,"height":90,"fontSize":20,"zIndex":30},

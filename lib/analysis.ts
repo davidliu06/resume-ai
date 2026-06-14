@@ -187,8 +187,8 @@ export async function analyzeResumeText(rawText: string): Promise<ResumeAnalysis
     messages: [
       {
         role: "system",
-          content:
-          "You are a cynical Technical Recruiter for SpaceX. Evaluate this engineering resume for metrics, technical depth, ATS keywords, and visual style choices such as hierarchy, bolding, fonts, colors, spacing, and ATS readability. Your suggestions must be concrete phrasing changes, text additions, text subtractions, or line reorder edits, not broad topic advice. Output JSON only.",
+        content:
+          "You are a cynical Technical Recruiter for SpaceX. Evaluate this engineering resume for metrics, technical depth, ATS keywords, and visual style choices such as hierarchy, bolding, fonts, colors, spacing, and ATS readability. Every suggestion must be a literal before/after edit using text grounded in the resume. Do not give broad topic advice. Do not invent companies, tools, degrees, awards, dates, or metrics. Output JSON only.",
       },
       {
         role: "user",
@@ -216,7 +216,15 @@ export async function analyzeResumeText(rawText: string): Promise<ResumeAnalysis
   }
 }
 
-Return 10-14 suggestions when possible. Do not write generic topics like "Add metrics" by itself. Each suggestion must be a direct edit the Improve Resume tool can apply to the resume text. For additions, put a short insertion cue in before and the exact added text in after. For subtractions, put the exact removable text in before and use an empty after string.
+Return 12-18 suggestions when possible. Do not write generic topics like "Add metrics" by itself. Each suggestion must be a direct edit the Improve Resume tool can apply to the resume text.
+
+Rules for suggestions:
+- For phrasing changes, "before" must quote one exact original sentence or bullet from the resume, and "after" must be the polished replacement.
+- For text additions, "before" must quote the exact nearby line where the new copy should attach, and "after" must include that same line plus the added truthful phrase or bullet.
+- For text subtractions, "before" must quote the exact removable text and "after" must be an empty string.
+- For line reorder edits, "before" must quote the exact current line and "after" must describe the new nearby placement using existing section names.
+- Improvements should sound like resume copy, for example turning a task bullet into an impact bullet when the resume provides enough evidence.
+- Only add numbers when they already appear in the resume or are directly stated by the user; otherwise use non-numeric impact language.
 
 Resume text:
 ${rawText.slice(0, 24000)}`,

@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { Check, Crown, FilePenLine, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import type { Plan, ResumeAnalysis } from "@/lib/types";
 
 type Decision = "accepted" | "declined";
@@ -100,8 +99,8 @@ export function ImproveResumeWorkspace({
             {acceptedCount} accepted
           </span>
         </div>
-        <Textarea
-          className="min-h-[720px] resize-y rounded-none border-0 bg-[#fffdf7] p-8 font-mono text-base leading-7 text-black shadow-inner placeholder:text-slate-500 focus-visible:ring-0"
+        <textarea
+          className="min-h-[720px] w-full resize-y rounded-none border-0 bg-white p-8 font-mono text-base leading-7 text-black caret-black shadow-inner outline-none placeholder:text-slate-500"
           onChange={(event) => setResumeText(event.target.value)}
           value={resumeText}
         />

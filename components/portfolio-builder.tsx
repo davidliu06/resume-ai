@@ -51,16 +51,28 @@ const backgrounds = [
 type DeckBackground = (typeof backgrounds)[number]["id"];
 
 export function PortfolioBuilder() {
-  const [state, action, pending] = useActionState(
-    optimizePortfolioFromResume,
-    initialState
-  );
   const [resumeText, setResumeText] = useState("");
   const [blocks, setBlocks] = useState<PortfolioBlock[]>(() =>
     getStarterBlocks()
   );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [background, setBackground] = useState<DeckBackground>("whiteboard");
+  const [state, action, pending] = useActionState(
+    async (previousState: PortfolioOptimizeState, formData: FormData) => {
+      const nextState = await optimizePortfolioFromResume(
+        previousState,
+        formData
+      );
+
+      if (nextState.ok && nextState.blocks.length) {
+        setBlocks(nextState.blocks);
+        setSelectedId(nextState.blocks[0]?.id ?? null);
+      }
+
+      return nextState;
+    },
+    initialState
+  );
   const cleaned = useMemo(() => cleanResumeText(resumeText), [resumeText]);
   const selectedBlock = blocks.find((block) => block.id === selectedId) ?? null;
 
@@ -198,20 +210,6 @@ export function PortfolioBuilder() {
           >
             {state.message}
           </p>
-        ) : null}
-
-        {state.blocks.length ? (
-          <Button
-            className="pixel-button h-11 bg-sky-300 hover:bg-sky-200"
-            onClick={() => {
-              setBlocks(state.blocks);
-              setSelectedId(state.blocks[0]?.id ?? null);
-            }}
-            type="button"
-          >
-            <Sparkles className="size-4" />
-            Use optimized canvas
-          </Button>
         ) : null}
 
         <div className="grid gap-2">
@@ -471,28 +469,28 @@ function getStarterBlocks(): PortfolioBlock[] {
       text: "YOUR NAME\nEngineering Portfolio\nMechanical / Software / Systems",
       x: 58,
       y: 54,
-      width: 430,
-      height: 132,
-      fontSize: 22,
+      width: 440,
+      height: 118,
+      fontSize: 24,
       zIndex: 30,
     },
     {
       id: crypto.randomUUID(),
       type: "frame",
       shape: "circle",
-      x: 738,
-      y: 48,
-      width: 154,
-      height: 154,
+      x: 748,
+      y: 42,
+      width: 150,
+      height: 150,
       zIndex: 10,
     },
     {
       id: crypto.randomUUID(),
       type: "text",
       text: "Profile photo",
-      x: 772,
-      y: 106,
-      width: 104,
+      x: 784,
+      y: 100,
+      width: 86,
       height: 36,
       fontSize: 14,
       zIndex: 30,
@@ -500,44 +498,76 @@ function getStarterBlocks(): PortfolioBlock[] {
     {
       id: crypto.randomUUID(),
       type: "text",
-      text: "PROJECT 01\nProblem, constraints, technical approach, tools, and measurable result.",
+      text: "ABOUT ME\n2-3 lines on engineering focus, build style, and the kinds of problems you like solving.",
       x: 72,
-      y: 238,
-      width: 360,
-      height: 132,
-      fontSize: 17,
+      y: 188,
+      width: 312,
+      height: 104,
+      fontSize: 15,
+      zIndex: 30,
+    },
+    {
+      id: crypto.randomUUID(),
+      type: "text",
+      text: "SKILLS\nCAD  /  Python  /  MATLAB  /  FEA\nControls  /  Fabrication  /  Testing",
+      x: 634,
+      y: 214,
+      width: 260,
+      height: 92,
+      fontSize: 14,
       zIndex: 30,
     },
     {
       id: crypto.randomUUID(),
       type: "frame",
       shape: "rect",
-      x: 392,
-      y: 216,
-      width: 260,
-      height: 170,
+      x: 396,
+      y: 214,
+      width: 210,
+      height: 136,
       zIndex: 10,
     },
     {
       id: crypto.randomUUID(),
       type: "text",
-      text: "PROJECT IMAGE / CAD / SCREENSHOT",
-      x: 424,
-      y: 286,
-      width: 210,
-      height: 42,
-      fontSize: 13,
+      text: "PROJECT IMAGE / CAD",
+      x: 422,
+      y: 266,
+      width: 158,
+      height: 34,
+      fontSize: 12,
       zIndex: 30,
     },
     {
       id: crypto.randomUUID(),
       type: "text",
-      text: "EXPERIENCE\nCompany / Role / Date\nOne concise line about scope and impact.",
-      x: 690,
-      y: 246,
-      width: 220,
-      height: 122,
-      fontSize: 15,
+      text: "FEATURED PROJECT\nProject name\nShort problem statement, technical approach, tools used, and strongest outcome.",
+      x: 72,
+      y: 334,
+      width: 510,
+      height: 116,
+      fontSize: 16,
+      zIndex: 30,
+    },
+    {
+      id: crypto.randomUUID(),
+      type: "frame",
+      shape: "rect",
+      x: 606,
+      y: 338,
+      width: 288,
+      height: 92,
+      zIndex: 10,
+    },
+    {
+      id: crypto.randomUUID(),
+      type: "text",
+      text: "EXPERIENCE TIMELINE\nRole / Company / Date\nConcise scope and impact line.",
+      x: 626,
+      y: 352,
+      width: 248,
+      height: 62,
+      fontSize: 13,
       zIndex: 30,
     },
     {
@@ -545,10 +575,10 @@ function getStarterBlocks(): PortfolioBlock[] {
       type: "text",
       text: "CONTACT\nemail@example.com | github.com/name | linkedin.com/in/name",
       x: 70,
-      y: 454,
-      width: 760,
-      height: 52,
-      fontSize: 14,
+      y: 474,
+      width: 770,
+      height: 44,
+      fontSize: 13,
       zIndex: 30,
     },
   ];
