@@ -6,19 +6,33 @@ import { ResumeUploadForm } from "@/components/resume-upload-form";
 import { ReviewFeed } from "@/components/review-feed";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { hasSupabaseEnv } from "@/lib/env";
+import { getSupabaseEnvError } from "@/lib/env";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Profile, Resume } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
-  if (!hasSupabaseEnv()) {
-    return <SetupRequired />;
+  const setupError = getSupabaseEnvError();
+
+  if (setupError) {
+    return <SetupRequired detail={setupError} />;
   }
 
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  let supabase;
+  let user = null;
+
+  try {
+    supabase = await createSupabaseServerClient();
+    const authResult = await supabase.auth.getUser();
+    user = authResult.data.user;
+  } catch (error) {
+    console.error("Supabase setup failed", error);
+
+    return (
+      <SetupRequired detail="Supabase could not initialize. Check the Supabase URL and anon key in Vercel." />
+    );
+  }
 
   if (!user) {
     return <SignedOutHome />;
@@ -190,7 +204,7 @@ function SignedOutHome() {
   );
 }
 
-function SetupRequired() {
+function SetupRequired({ detail }: { detail?: string }) {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
       <div className="max-w-xl rounded-lg border border-white/10 bg-slate-900/70 p-6">
@@ -208,6 +222,11 @@ function SetupRequired() {
           </code>
           .
         </p>
+        {detail ? (
+          <p className="mt-3 rounded-md border border-amber-300/20 bg-amber-300/10 px-3 py-2 text-sm text-amber-100">
+            {detail}
+          </p>
+        ) : null}
       </div>
     </main>
   );
