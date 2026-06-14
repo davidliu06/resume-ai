@@ -55,6 +55,10 @@ function friendlyUploadError(error: unknown) {
     return "OpenAI rejected the API key. Check OPENAI_API_KEY in .env.local.";
   }
 
+  if (message.includes("unable to extract selectable pdf text")) {
+    return "We could not extract readable text from that PDF. Links are okay, but the file needs selectable text rather than a scanned image.";
+  }
+
   if (
     message.includes("worker") ||
     message.includes("pdf.worker") ||

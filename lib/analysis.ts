@@ -20,6 +20,30 @@ const analysisSchema = z.object({
 });
 
 export async function extractPdfText(buffer: Buffer) {
+  await installPdfDomGlobals();
+
+  const errors: unknown[] = [];
+
+  try {
+    return normalizeExtractedText(await extractWithPdfParse(buffer));
+  } catch (error) {
+    errors.push(error);
+  }
+
+  try {
+    return normalizeExtractedText(await extractWithPdfJs(buffer));
+  } catch (error) {
+    errors.push(error);
+  }
+
+  throw new Error(
+    `Unable to extract selectable PDF text. ${errors
+      .map((error) => (error instanceof Error ? error.message : String(error)))
+      .join(" | ")}`
+  );
+}
+
+async function installPdfDomGlobals() {
   const canvas = await import("@napi-rs/canvas");
   const globals = globalThis as unknown as {
     DOMMatrix?: unknown;
@@ -34,16 +58,63 @@ export async function extractPdfText(buffer: Buffer) {
   globals.DOMRect ??= canvas.DOMRect;
   globals.ImageData ??= canvas.ImageData;
   globals.Path2D ??= canvas.Path2D;
+}
 
+async function extractWithPdfParse(buffer: Buffer) {
   const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: buffer });
 
   try {
-    const result = await parser.getText();
-    return result.text.replace(/\s+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+    const result = await parser.getText({
+      parseHyperlinks: false,
+      parsePageInfo: false,
+      pageJoiner: "\n\n",
+    });
+
+    return result.text;
   } finally {
     await parser.destroy();
   }
+}
+
+async function extractWithPdfJs(buffer: Buffer) {
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const documentInit = {
+    data: new Uint8Array(buffer),
+    disableWorker: true,
+    useSystemFonts: true,
+  } as unknown as Parameters<typeof pdfjs.getDocument>[0];
+  const document = await pdfjs.getDocument(documentInit).promise;
+  const pages: string[] = [];
+
+  try {
+    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
+      const page = await document.getPage(pageNumber);
+      const content = await page.getTextContent({
+        disableNormalization: false,
+        includeMarkedContent: false,
+      });
+      const text = content.items
+        .map((item) => ("str" in item ? item.str : ""))
+        .filter(Boolean)
+        .join(" ");
+
+      pages.push(text);
+      page.cleanup();
+    }
+  } finally {
+    await document.destroy();
+  }
+
+  return pages.join("\n\n");
+}
+
+function normalizeExtractedText(text: string) {
+  return text
+    .replace(/\s+\n/g, "\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 export async function analyzeResumeText(rawText: string): Promise<ResumeAnalysis> {
