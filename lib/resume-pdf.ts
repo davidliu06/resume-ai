@@ -246,7 +246,7 @@ export function downloadResumePdf({
       bullet ? stripBullet(displayLine) : displayLine,
       lineWidth
     );
-    const lineHeight = template.roomy ? 13.5 : 12;
+    const lineHeight = template.roomy ? 12.5 : 11.25;
     ensureSpace(wrapped.length * lineHeight + 4);
 
     wrapped.forEach((part: string, partIndex: number) => {
@@ -277,7 +277,7 @@ function getRoleStyle(
     return {
       color: [51, 65, 85] as [number, number, number],
       font: bodyFont,
-      size: 8.5,
+      size: 8,
       weight: "normal" as const,
     };
   }
@@ -286,7 +286,7 @@ function getRoleStyle(
     return {
       color: [15, 23, 42] as [number, number, number],
       font: bodyFont,
-      size: 10,
+      size: 9.5,
       weight: "bold" as const,
     };
   }
@@ -295,7 +295,7 @@ function getRoleStyle(
     return {
       color: [51, 65, 85] as [number, number, number],
       font: bodyFont,
-      size: 9.5,
+      size: 9,
       weight: "normal" as const,
     };
   }
@@ -304,7 +304,7 @@ function getRoleStyle(
     return {
       color: [15, 23, 42] as [number, number, number],
       font: bodyFont,
-      size: 9.5,
+      size: 9,
       weight: "italic" as const,
     };
   }
@@ -313,7 +313,7 @@ function getRoleStyle(
     return {
       color: [71, 85, 105] as [number, number, number],
       font: "helvetica" as const,
-      size: 8.5,
+      size: 8,
       weight: "normal" as const,
     };
   }
@@ -321,7 +321,7 @@ function getRoleStyle(
   return {
     color: [15, 23, 42] as [number, number, number],
     font: bodyFont,
-    size: 9.5,
+    size: 9,
     weight: "normal" as const,
   };
 }

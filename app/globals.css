@@ -200,14 +200,15 @@
   }
 
   .resume-template p {
-    margin: 0 0 6px;
-    font-size: 12px;
+    margin: 0 0 5px;
+    font-size: 10.75px;
+    line-height: 1.35;
   }
 
   .resume-template .resume-contact {
     margin-bottom: 12px;
     color: #334155;
-    font-size: 11px;
+    font-size: 10px;
   }
 
   .resume-template .resume-company {
@@ -223,7 +224,7 @@
 
   .resume-template .resume-date {
     color: #475569;
-    font-size: 11px;
+    font-size: 10px;
     text-transform: uppercase;
   }
 
@@ -234,16 +235,18 @@
 
   .resume-template .resume-bullet {
     position: relative;
-    margin-left: 16px;
+    margin-left: 14px;
+    font-size: 10.25px;
+    line-height: 1.35;
   }
 
   .resume-template .resume-bullet::before {
     content: "";
     position: absolute;
-    left: -12px;
-    top: 0.58em;
-    height: 4px;
-    width: 4px;
+    left: -10px;
+    top: 0.62em;
+    height: 3px;
+    width: 3px;
     background: currentColor;
   }
 

@@ -1,12 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Check, Crown, FilePenLine, X } from "lucide-react";
+import { useActionState, useMemo, useState } from "react";
+import { Check, Crown, FilePenLine, Loader2, WandSparkles, X } from "lucide-react";
 
+import { generateResumeRewriteSuggestions } from "@/app/actions";
 import { Button } from "@/components/ui/button";
-import type { Plan, ResumeAnalysis } from "@/lib/types";
+import type { Plan, ResumeAnalysis, ResumeRewriteState } from "@/lib/types";
 
 type Decision = "accepted" | "declined";
+
+const rewriteInitialState: ResumeRewriteState = {
+  ok: false,
+  message: "",
+  suggestions: [],
+};
 
 export function ImproveResumeWorkspace({
   analysis,
@@ -20,7 +27,26 @@ export function ImproveResumeWorkspace({
   const [resumeText, setResumeText] = useState(analysis?.rawText ?? "");
   const [decisions, setDecisions] = useState<Record<number, Decision>>({});
   const [reasons, setReasons] = useState<Record<number, string>>({});
+  const [rewriteState, rewriteAction, rewritePending] = useActionState(
+    async (previousState: ResumeRewriteState, formData: FormData) => {
+      const nextState = await generateResumeRewriteSuggestions(
+        previousState,
+        formData
+      );
+
+      if (nextState.ok) {
+        setDecisions({});
+        setReasons({});
+      }
+
+      return nextState;
+    },
+    rewriteInitialState
+  );
   const isPremium = plan === "pro";
+  const activeSuggestions = rewriteState.suggestions.length
+    ? rewriteState.suggestions
+    : analysis?.suggestions ?? [];
   const acceptedCount = useMemo(
     () => Object.values(decisions).filter((item) => item === "accepted").length,
     [decisions]
@@ -48,7 +74,7 @@ export function ImproveResumeWorkspace({
       return;
     }
 
-    const suggestion = analysis?.suggestions[index];
+    const suggestion = activeSuggestions[index];
 
     if (!suggestion) {
       return;
@@ -76,7 +102,7 @@ export function ImproveResumeWorkspace({
       return;
     }
 
-    const suggestion = analysis?.suggestions[index];
+    const suggestion = activeSuggestions[index];
 
     setDecisions((current) => ({ ...current, [index]: "declined" }));
     setReasons((current) => ({
@@ -135,15 +161,54 @@ export function ImproveResumeWorkspace({
           </div>
         ) : null}
 
-        {analysis.suggestions.map((suggestion, index) => (
+        <form
+          action={rewriteAction}
+          className="pixel-panel flex flex-col gap-3 bg-slate-900/80 p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <input name="resumeText" type="hidden" value={resumeText} />
+          <div>
+            <div className="font-mono text-sm font-black uppercase text-slate-50">
+              Line-level edits
+            </div>
+            <p className="mt-1 text-sm leading-6 text-slate-400">
+              Generate a fresh batch of concrete before/after rewrites from the
+              resume text on the left.
+            </p>
+            {rewriteState.message ? (
+              <p
+                className={`mt-2 font-mono text-xs ${
+                  rewriteState.ok ? "text-emerald-200" : "text-red-200"
+                }`}
+                aria-live="polite"
+              >
+                {rewriteState.message}
+              </p>
+            ) : null}
+          </div>
+          <Button
+            className="pixel-button h-10 shrink-0"
+            disabled={!isPremium || rewritePending || resumeText.length < 120}
+            type="submit"
+          >
+            {rewritePending ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <WandSparkles className="size-4" />
+            )}
+            {rewritePending ? "Writing edits" : "Generate rewrite edits"}
+          </Button>
+        </form>
+
+        {activeSuggestions.map((suggestion, index) => (
           <article className="pixel-panel p-4" key={`${suggestion.title}-${index}`}>
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="font-mono text-sm font-black uppercase text-slate-50">
-                  {suggestion.title}
+                <div className="font-mono text-sm font-black uppercase text-emerald-100">
+                  Edit {String(index + 1).padStart(2, "0")}
                 </div>
                 <div className="mt-1 text-xs text-slate-500">
-                  {suggestion.category ?? suggestion.severity}
+                  {suggestion.category ?? suggestion.severity} ·{" "}
+                  {suggestion.title}
                 </div>
               </div>
               <div className="flex gap-2">
@@ -169,14 +234,28 @@ export function ImproveResumeWorkspace({
                 </Button>
               </div>
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate-400">
-              {suggestion.rationale}
-            </p>
-            {suggestion.impact ? (
-              <p className="mt-2 border-2 border-slate-950 bg-slate-950/60 p-3 text-sm leading-6 text-slate-300 shadow-[3px_3px_0_#020617]">
-                {suggestion.impact}
-              </p>
-            ) : null}
+            <div className="mt-3 grid gap-3">
+              <div className="border-2 border-slate-950 bg-red-950/30 p-3 shadow-[3px_3px_0_#020617]">
+                <div className="mb-2 font-mono text-[11px] font-black uppercase text-red-200">
+                  Before
+                </div>
+                <p className="text-[13px] leading-5 text-slate-300">
+                  {suggestion.before}
+                </p>
+              </div>
+              <div className="border-2 border-slate-950 bg-emerald-950/30 p-3 shadow-[3px_3px_0_#020617]">
+                <div className="mb-2 font-mono text-[11px] font-black uppercase text-emerald-200">
+                  After
+                </div>
+                <p className="text-[13px] leading-5 text-slate-100">
+                  {suggestion.after || "Delete this text."}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 grid gap-2 border-2 border-slate-950 bg-slate-950/60 p-3 text-xs leading-5 text-slate-400 shadow-[3px_3px_0_#020617]">
+              <p>{suggestion.rationale}</p>
+              {suggestion.impact ? <p>{suggestion.impact}</p> : null}
+            </div>
             {decisions[index] ? (
               <div className="mt-3 border-2 border-slate-950 bg-slate-800 px-3 py-2 text-xs leading-5 text-slate-300 shadow-[3px_3px_0_#020617]">
                 <span className="font-mono font-black uppercase text-emerald-200">

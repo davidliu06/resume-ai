@@ -32,6 +32,10 @@ const analysisSchema = z.object({
   styleReview: styleReviewSchema.optional(),
 });
 
+const rewriteSuggestionSchema = z.object({
+  suggestions: z.array(suggestionSchema).default([]),
+});
+
 export async function extractPdfText(buffer: Buffer) {
   return (await extractPdfTextWithLinks(buffer)).text;
 }
@@ -244,4 +248,59 @@ ${rawText.slice(0, 24000)}`,
     ...parsed,
     rawText,
   };
+}
+
+export async function generateResumeEditSuggestions(rawText: string) {
+  const openai = new OpenAI({
+    apiKey: requireEnv("OPENAI_API_KEY"),
+  });
+
+  const completion = await openai.chat.completions.create({
+    model: "gpt-4o-mini",
+    response_format: { type: "json_object" },
+    temperature: 0.2,
+    messages: [
+      {
+        role: "system",
+        content:
+          "You are an exacting resume editor for engineering candidates. Your only job is to produce concrete before/after resume line edits. Do not write broad advice. Do not invent metrics, employers, tools, dates, awards, or outcomes. Output JSON only.",
+      },
+      {
+        role: "user",
+        content: `Return JSON with this exact shape:
+{
+  "suggestions": [
+    {
+      "title": "specific edit title, never generic advice",
+      "severity": "critical" | "high" | "medium" | "low",
+      "category": "Rewrite | Tighten | Clarify technical depth | Add truthful context | Remove filler",
+      "before": "one exact original resume sentence, phrase, or bullet",
+      "after": "the improved replacement text",
+      "rationale": "why this specific edit helps",
+      "impact": "how the replacement changes recruiter perception"
+    }
+  ]
+}
+
+Return 16-24 suggestions if the resume has enough text. Each suggestion must be a direct replacement, addition, or deletion the editor can apply:
+- For rewrites, quote the exact original text in "before" and write the replacement in "after".
+- For additions, quote the exact line to extend in "before" and include that same line plus added truthful context in "after".
+- For deletions, quote the exact removable text in "before" and use an empty string in "after".
+- Skip any line you cannot improve specifically.
+- Titles must name the line being edited, for example "Rewrite torpedo mechanism bullet", not "Add Quantifiable Achievements".
+- Do not use placeholder numbers like 30%, 2x, or $ unless they already appear in the resume.
+
+Resume text:
+${rawText.slice(0, 24000)}`,
+      },
+    ],
+  });
+
+  const content = completion.choices[0]?.message.content;
+
+  if (!content) {
+    throw new Error("OpenAI returned empty rewrite suggestions.");
+  }
+
+  return rewriteSuggestionSchema.parse(JSON.parse(content)).suggestions;
 }

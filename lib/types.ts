@@ -52,6 +52,10 @@ export type ResumeExportState = ActionState & {
   links: ResumeLink[];
 };
 
+export type ResumeRewriteState = ActionState & {
+  suggestions: ResumeSuggestion[];
+};
+
 export type ResumeLink = {
   text: string;
   url: string;

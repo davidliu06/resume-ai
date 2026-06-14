@@ -9,6 +9,7 @@ import {
   analyzeResumeText,
   extractPdfText,
   extractPdfTextWithLinks,
+  generateResumeEditSuggestions,
 } from "@/lib/analysis";
 import { requireEnv } from "@/lib/env";
 import {
@@ -23,9 +24,12 @@ import type {
   PortfolioOptimizeState,
   Profile,
   ResumeExportState,
+  ResumeRewriteState,
 } from "@/lib/types";
 
 const MAX_PDF_BYTES = 8 * 1024 * 1024;
+const PORTFOLIO_CANVAS_WIDTH = 794;
+const PORTFOLIO_CANVAS_HEIGHT = 1123;
 
 function friendlyAuthError(message: string) {
   if (message.toLowerCase().includes("email not confirmed")) {
@@ -321,10 +325,10 @@ export async function prepareResumeExport(
   }
 }
 
-export async function optimizePortfolioFromResume(
-  _prevState: PortfolioOptimizeState,
+export async function generateResumeRewriteSuggestions(
+  _prevState: ResumeRewriteState,
   formData: FormData
-): Promise<PortfolioOptimizeState> {
+): Promise<ResumeRewriteState> {
   try {
     await getAuthedUser();
 
@@ -335,7 +339,90 @@ export async function optimizePortfolioFromResume(
     if (resumeText.length < 120) {
       return {
         ok: false,
-        message: "Paste more resume text before optimizing a portfolio.",
+        message: "Add more resume text before generating rewrite edits.",
+        suggestions: [],
+      };
+    }
+
+    const suggestions = await generateResumeEditSuggestions(resumeText);
+
+    if (!suggestions.length) {
+      return {
+        ok: false,
+        message: "The AI did not return usable rewrite edits. Try again.",
+        suggestions: [],
+      };
+    }
+
+    return {
+      ok: true,
+      message: `Generated ${suggestions.length} line-level rewrite edits.`,
+      suggestions,
+    };
+  } catch (error) {
+    console.error("Resume rewrite generation failed", error);
+
+    return {
+      ok: false,
+      message: friendlyUploadError(error),
+      suggestions: [],
+    };
+  }
+}
+
+export async function optimizePortfolioFromResume(
+  _prevState: PortfolioOptimizeState,
+  formData: FormData
+): Promise<PortfolioOptimizeState> {
+  try {
+    await getAuthedUser();
+
+    const file = formData.get("resumeFile");
+    let resumeText = cleanResumeText(
+      String(formData.get("resumeText") ?? "").trim()
+    );
+
+    if (file instanceof File && file.size > 0) {
+      if (file.size > MAX_PDF_BYTES) {
+        return {
+          ok: false,
+          message: "Keep the PDF under 8 MB.",
+          blocks: [],
+        };
+      }
+
+      const isPdf =
+        file.type === "application/pdf" ||
+        file.name.toLowerCase().endsWith(".pdf");
+
+      if (!isPdf) {
+        return {
+          ok: false,
+          message: "Upload a PDF resume or paste resume text.",
+          blocks: [],
+        };
+      }
+
+      const extracted = await extractPdfTextWithLinks(
+        Buffer.from(await file.arrayBuffer())
+      );
+      const extractedLinks = extracted.links
+        .map((link) => `${link.text}: ${link.url}`)
+        .join("\n");
+      resumeText = cleanResumeText(
+        [
+          extracted.text,
+          extractedLinks && `Extracted links:\n${extractedLinks}`,
+        ]
+          .filter(Boolean)
+          .join("\n\n")
+      );
+    }
+
+    if (resumeText.length < 120) {
+      return {
+        ok: false,
+        message: "Upload a selectable-text PDF or paste more resume text.",
         blocks: [],
       };
     }
@@ -356,7 +443,7 @@ export async function optimizePortfolioFromResume(
         },
         {
           role: "user",
-          content: `Create editable PDF portfolio deck blocks from this resume. You are designing a single polished landscape PDF portfolio canvas, not a website. Use the resume to decide the content and layout.
+          content: `Create editable PDF portfolio blocks from this resume. You are designing one polished A4 portrait portfolio page, not a website and not a cramped landscape slide. Use the resume to decide the content and layout.
 
 Required sections:
 - Name and title headline.
@@ -368,17 +455,18 @@ Required sections:
 
 Layout rules:
 - Do not make every section the same kind of box.
-- Use varied block sizes, spacing, and positions: large title, small skill chips, image brackets, timeline blocks, footer contact strip.
+- Use varied block sizes, spacing, and positions: large title, an about block, small skill chips/columns, a project feature area, timeline blocks, and a footer contact strip.
 - Include image frames for profile and project visuals. Empty frames must sit under images, and text can overlap images when useful.
 - Keep truthful claims only. Drop filler, repeated bullets, and resume-only details.
 - Use zIndex 10 for frames, 20 for images, 30 for text.
-- Coordinates target a 960 x 540 canvas. Keep all blocks inside the canvas with breathing room.
+- Coordinates target a 794 x 1123 A4 portrait canvas. Keep all blocks inside the canvas with generous breathing room.
+- Use normal reading sizes: 30-40 for the name, 14-18 for section headings, 10-13 for body copy.
 
 Return JSON:
 {
   "blocks": [
-    {"type":"text","text":"deck copy","x":40,"y":40,"width":420,"height":90,"fontSize":20,"zIndex":30},
-    {"type":"frame","shape":"circle","x":760,"y":48,"width":128,"height":128,"zIndex":10}
+    {"type":"text","text":"deck copy","x":48,"y":48,"width":460,"height":120,"fontSize":28,"zIndex":30},
+    {"type":"frame","shape":"circle","x":604,"y":52,"width":128,"height":128,"zIndex":10}
   ]
 }
 
@@ -419,6 +507,20 @@ function normalizePortfolioBlocks(input: unknown): PortfolioBlock[] {
       item.type === "frame" || item.type === "image" || item.type === "text"
         ? item.type
         : "text";
+    const x = clampNumber(item.x, 48, PORTFOLIO_CANVAS_WIDTH - 80, 20);
+    const y = clampNumber(item.y, 48, PORTFOLIO_CANVAS_HEIGHT - 80, 20);
+    const width = clampNumber(
+      item.width,
+      type === "text" ? 280 : 120,
+      PORTFOLIO_CANVAS_WIDTH - x - 40,
+      80
+    );
+    const height = clampNumber(
+      item.height,
+      type === "text" ? 88 : 120,
+      PORTFOLIO_CANVAS_HEIGHT - y - 40,
+      40
+    );
 
     return {
       id: crypto.randomUUID(),
@@ -429,11 +531,16 @@ function normalizePortfolioBlocks(input: unknown): PortfolioBlock[] {
           : undefined,
       src: type === "image" ? item.src : undefined,
       shape: item.shape === "circle" ? "circle" : "rect",
-      fontSize: clampNumber(item.fontSize, type === "text" ? 18 : 0, 42),
-      x: clampNumber(item.x, 20, 860),
-      y: clampNumber(item.y, 20, 920),
-      width: clampNumber(item.width, type === "text" ? 220 : 120, 520),
-      height: clampNumber(item.height, type === "text" ? 70 : 120, 320),
+      fontSize: clampNumber(
+        item.fontSize,
+        type === "text" ? 18 : 0,
+        42,
+        type === "text" ? 10 : 0
+      ),
+      x,
+      y,
+      width,
+      height,
       zIndex:
         typeof item.zIndex === "number"
           ? clampNumber(item.zIndex, type === "text" ? 30 : 10, 50)
@@ -446,14 +553,20 @@ function normalizePortfolioBlocks(input: unknown): PortfolioBlock[] {
   });
 }
 
-function clampNumber(value: unknown, fallback: number, max: number) {
+function clampNumber(
+  value: unknown,
+  fallback: number,
+  max: number,
+  min = 0
+) {
   const number = Number(value);
+  const upper = Math.max(min, max);
 
   if (!Number.isFinite(number)) {
-    return fallback;
+    return Math.min(Math.max(fallback, min), upper);
   }
 
-  return Math.min(Math.max(number, 0), max);
+  return Math.min(Math.max(number, min), upper);
 }
 
 export async function createCheckoutSession() {

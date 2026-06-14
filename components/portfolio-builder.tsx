@@ -24,6 +24,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { cleanResumeText } from "@/lib/resume-text";
 import type { PortfolioBlock, PortfolioOptimizeState } from "@/lib/types";
 
+const PORTFOLIO_CANVAS_WIDTH = 794;
+const PORTFOLIO_CANVAS_HEIGHT = 1123;
+
 const initialState: PortfolioOptimizeState = {
   ok: false,
   message: "",
@@ -51,6 +54,7 @@ const backgrounds = [
 type DeckBackground = (typeof backgrounds)[number]["id"];
 
 export function PortfolioBuilder() {
+  const [hasResumeFile, setHasResumeFile] = useState(false);
   const [resumeText, setResumeText] = useState("");
   const [blocks, setBlocks] = useState<PortfolioBlock[]>(() =>
     getStarterBlocks()
@@ -74,6 +78,7 @@ export function PortfolioBuilder() {
     initialState
   );
   const cleaned = useMemo(() => cleanResumeText(resumeText), [resumeText]);
+  const hasPortfolioInput = hasResumeFile || cleaned.length >= 120;
   const selectedBlock = blocks.find((block) => block.id === selectedId) ?? null;
 
   function addBlock(type: PortfolioBlock["type"], shape?: "rect" | "circle") {
@@ -85,11 +90,11 @@ export function PortfolioBuilder() {
         type,
         text: type === "text" ? "Edit this text" : undefined,
         shape,
-        fontSize: type === "text" ? 18 : undefined,
-        x: 80,
-        y: 120 + current.length * 24,
-        width: type === "text" ? 300 : 160,
-        height: type === "text" ? 88 : 160,
+        fontSize: type === "text" ? 13 : undefined,
+        x: 72,
+        y: Math.min(920, 120 + current.length * 28),
+        width: type === "text" ? 280 : 160,
+        height: type === "text" ? 96 : 160,
         zIndex: type === "text" ? 30 : type === "image" ? 20 : 10,
       },
     ]);
@@ -115,10 +120,10 @@ export function PortfolioBuilder() {
         type: "image" as const,
         src: await fileToDataUrl(file),
         zIndex: 20,
-        x: 620,
-        y: 110 + index * 24,
-        width: 220,
-        height: 160,
+        x: 450,
+        y: 390 + index * 28,
+        width: 250,
+        height: 180,
       }))
     );
 
@@ -169,26 +174,42 @@ export function PortfolioBuilder() {
               Resume to portfolio
             </h2>
             <p className="mt-1 text-sm text-slate-400">
-              AI chooses the strongest resume material, then you edit the PDF
-              deck canvas directly.
+              Upload a resume PDF or paste resume text. AI extracts the
+              strongest material and lays out an editable A4 portfolio page.
             </p>
           </div>
         </div>
 
         <label className="grid gap-2 text-sm text-slate-300">
-          Resume text
+          Resume PDF
+          <div className="pixel-input flex min-h-20 items-center gap-3 p-3">
+            <ImagePlus className="size-5 text-emerald-200" />
+            <input
+              accept="application/pdf,.pdf"
+              className="w-full text-sm file:mr-3 file:border-2 file:border-slate-950 file:bg-emerald-300 file:px-3 file:py-2 file:font-mono file:text-xs file:font-black file:uppercase file:text-slate-950"
+              name="resumeFile"
+              onChange={(event) =>
+                setHasResumeFile(Boolean(event.target.files?.length))
+              }
+              type="file"
+            />
+          </div>
+        </label>
+
+        <label className="grid gap-2 text-sm text-slate-300">
+          Or paste resume text
           <Textarea
-            className="pixel-input min-h-72 resize-y"
+            className="pixel-input min-h-56 resize-y"
             name="resumeText"
             onChange={(event) => setResumeText(event.target.value)}
-            placeholder="Paste resume text with links..."
+            placeholder="Paste resume text with projects, links, and contact info..."
             value={resumeText}
           />
         </label>
 
         <Button
           className="pixel-button h-11"
-          disabled={pending || cleaned.length < 120}
+          disabled={pending || !hasPortfolioInput}
           type="submit"
         >
           {pending ? (
@@ -357,7 +378,12 @@ export function PortfolioBuilder() {
 
         <div className="overflow-auto bg-slate-950 p-4">
           <div
-            className={`portfolio-canvas portfolio-canvas-${background} relative h-[540px] min-w-[960px] overflow-hidden`}
+            className={`portfolio-canvas portfolio-canvas-${background} relative mx-auto overflow-hidden`}
+            style={{
+              height: PORTFOLIO_CANVAS_HEIGHT,
+              minWidth: PORTFOLIO_CANVAS_WIDTH,
+              width: PORTFOLIO_CANVAS_WIDTH,
+            }}
           >
             {blocks
               .slice()
@@ -467,74 +493,74 @@ function getStarterBlocks(): PortfolioBlock[] {
       id: crypto.randomUUID(),
       type: "text",
       text: "YOUR NAME\nEngineering Portfolio\nMechanical / Software / Systems",
-      x: 58,
-      y: 54,
-      width: 440,
-      height: 118,
-      fontSize: 24,
+      x: 54,
+      y: 56,
+      width: 480,
+      height: 130,
+      fontSize: 32,
       zIndex: 30,
     },
     {
       id: crypto.randomUUID(),
       type: "frame",
       shape: "circle",
-      x: 748,
-      y: 42,
-      width: 150,
-      height: 150,
+      x: 604,
+      y: 54,
+      width: 132,
+      height: 132,
       zIndex: 10,
     },
     {
       id: crypto.randomUUID(),
       type: "text",
       text: "Profile photo",
-      x: 784,
-      y: 100,
+      x: 628,
+      y: 104,
       width: 86,
       height: 36,
-      fontSize: 14,
+      fontSize: 12,
       zIndex: 30,
     },
     {
       id: crypto.randomUUID(),
       type: "text",
       text: "ABOUT ME\n2-3 lines on engineering focus, build style, and the kinds of problems you like solving.",
-      x: 72,
-      y: 188,
-      width: 312,
-      height: 104,
-      fontSize: 15,
+      x: 56,
+      y: 230,
+      width: 316,
+      height: 150,
+      fontSize: 13,
       zIndex: 30,
     },
     {
       id: crypto.randomUUID(),
       type: "text",
       text: "SKILLS\nCAD  /  Python  /  MATLAB  /  FEA\nControls  /  Fabrication  /  Testing",
-      x: 634,
-      y: 214,
-      width: 260,
-      height: 92,
-      fontSize: 14,
+      x: 420,
+      y: 230,
+      width: 316,
+      height: 150,
+      fontSize: 12,
       zIndex: 30,
     },
     {
       id: crypto.randomUUID(),
       type: "frame",
       shape: "rect",
-      x: 396,
-      y: 214,
-      width: 210,
-      height: 136,
+      x: 58,
+      y: 430,
+      width: 280,
+      height: 210,
       zIndex: 10,
     },
     {
       id: crypto.randomUUID(),
       type: "text",
       text: "PROJECT IMAGE / CAD",
-      x: 422,
-      y: 266,
-      width: 158,
-      height: 34,
+      x: 104,
+      y: 518,
+      width: 190,
+      height: 38,
       fontSize: 12,
       zIndex: 30,
     },
@@ -542,31 +568,31 @@ function getStarterBlocks(): PortfolioBlock[] {
       id: crypto.randomUUID(),
       type: "text",
       text: "FEATURED PROJECT\nProject name\nShort problem statement, technical approach, tools used, and strongest outcome.",
-      x: 72,
-      y: 334,
-      width: 510,
-      height: 116,
-      fontSize: 16,
+      x: 374,
+      y: 430,
+      width: 360,
+      height: 210,
+      fontSize: 14,
       zIndex: 30,
     },
     {
       id: crypto.randomUUID(),
       type: "frame",
       shape: "rect",
-      x: 606,
-      y: 338,
-      width: 288,
-      height: 92,
+      x: 56,
+      y: 694,
+      width: 680,
+      height: 156,
       zIndex: 10,
     },
     {
       id: crypto.randomUUID(),
       type: "text",
       text: "EXPERIENCE TIMELINE\nRole / Company / Date\nConcise scope and impact line.",
-      x: 626,
-      y: 352,
-      width: 248,
-      height: 62,
+      x: 84,
+      y: 724,
+      width: 620,
+      height: 96,
       fontSize: 13,
       zIndex: 30,
     },
@@ -574,11 +600,11 @@ function getStarterBlocks(): PortfolioBlock[] {
       id: crypto.randomUUID(),
       type: "text",
       text: "CONTACT\nemail@example.com | github.com/name | linkedin.com/in/name",
-      x: 70,
-      y: 474,
-      width: 770,
-      height: 44,
-      fontSize: 13,
+      x: 56,
+      y: 980,
+      width: 680,
+      height: 78,
+      fontSize: 12,
       zIndex: 30,
     },
   ];
@@ -588,11 +614,11 @@ function downloadPortfolioPdf(
   blocks: PortfolioBlock[],
   background: DeckBackground
 ) {
-  const doc = new jsPDF({ format: "letter", orientation: "landscape", unit: "pt" });
+  const doc = new jsPDF({ format: "a4", orientation: "portrait", unit: "pt" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const scaleX = pageWidth / 960;
-  const scaleY = pageHeight / 540;
+  const scaleX = pageWidth / PORTFOLIO_CANVAS_WIDTH;
+  const scaleY = pageHeight / PORTFOLIO_CANVAS_HEIGHT;
 
   drawDeckBackground(doc, background, pageWidth, pageHeight);
 
@@ -600,49 +626,54 @@ function downloadPortfolioPdf(
     .slice()
     .sort((a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0))
     .forEach((block) => {
-    const x = block.x * scaleX;
-    const y = block.y * scaleY;
-    const width = block.width * scaleX;
-    const height = block.height * scaleY;
+      const x = block.x * scaleX;
+      const y = block.y * scaleY;
+      const width = block.width * scaleX;
+      const height = block.height * scaleY;
 
-    if (block.type === "text") {
-      doc.setFillColor(248, 250, 252);
-      doc.setDrawColor(2, 6, 23);
-      doc.setLineWidth(2);
-      doc.rect(x, y, width, height, "FD");
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize((block.fontSize ?? 18) * 0.72);
-      doc.setTextColor(15, 23, 42);
-      const lines = doc.splitTextToSize(block.text ?? "", width - 20);
-      doc.text(lines, x + 10, y + 18);
-      return;
-    }
+      if (block.type === "text") {
+        doc.setFillColor(248, 250, 252);
+        doc.setDrawColor(2, 6, 23);
+        doc.setLineWidth(1.5);
+        doc.rect(x, y, width, height, "FD");
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize((block.fontSize ?? 13) * 0.72);
+        doc.setTextColor(15, 23, 42);
+        const lines = doc.splitTextToSize(block.text ?? "", width - 20);
+        doc.text(lines, x + 10, y + 18);
+        return;
+      }
 
-    if (block.type === "image" && block.src) {
-      doc.addImage(
-        block.src,
-        getImageFormat(block.src),
-        x,
-        y,
-        width,
-        height,
-        undefined,
-        "FAST"
-      );
-      doc.setDrawColor(2, 6, 23);
-      doc.rect(x, y, width, height);
-      return;
-    }
+      if (block.type === "image" && block.src) {
+        doc.addImage(
+          block.src,
+          getImageFormat(block.src),
+          x,
+          y,
+          width,
+          height,
+          undefined,
+          "FAST"
+        );
+        doc.setDrawColor(2, 6, 23);
+        doc.rect(x, y, width, height);
+        return;
+      }
 
-    doc.setDrawColor(134, 239, 172);
-    doc.setFillColor(34, 197, 94);
-    doc.setLineDashPattern([5, 4], 0);
-    if (block.shape === "circle") {
-      doc.circle(x + width / 2, y + height / 2, Math.min(width, height) / 2, "S");
-    } else {
-      doc.rect(x, y, width, height, "S");
-    }
-    doc.setLineDashPattern([], 0);
+      doc.setDrawColor(134, 239, 172);
+      doc.setFillColor(34, 197, 94);
+      doc.setLineDashPattern([5, 4], 0);
+      if (block.shape === "circle") {
+        doc.circle(
+          x + width / 2,
+          y + height / 2,
+          Math.min(width, height) / 2,
+          "S"
+        );
+      } else {
+        doc.rect(x, y, width, height, "S");
+      }
+      doc.setLineDashPattern([], 0);
     });
 
   doc.save("portfolio-deck.pdf");
